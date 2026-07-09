@@ -3101,3 +3101,54 @@ h3 {
         width: auto;
     }
 }
+.navbar-landing {
+  border-bottom: none;
+  box-shadow: none;
+}
+.navbar-landing-inner {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  align-items: center;
+}
+.navbar-landing-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+.navbar-logo-img {
+  height: 32px;
+  width: auto;
+}
+.navbar-signin-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: inherit;
+  flex-shrink: 0;
+}
+.navbar-get-started {
+  padding: 8px 28px;
+  border-radius: 6px;
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .navbar-get-started {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+  .navbar-logo-img {
+    height: 26px;
+  }
+  .navbar .logo {
+    font-size: 16px;
+    gap: 6px;
+  }
+}
