@@ -3152,3 +3152,76 @@ h3 {
     gap: 6px;
   }
 }
+/* ---------- Spot page: chart-only full-width layout ---------- */
+.spot-page-full {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 100px);
+}
+
+.spot-chart-panel-full {
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .spot-page-full {
+    height: calc(100vh - 140px);
+  }
+
+  .spot-header {
+    padding: 10px 0;
+  }
+  .spot-header-left {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .spot-coin-icon {
+    width: 26px;
+    height: 26px;
+  }
+  .spot-pair-name {
+    font-size: 16px;
+  }
+  .spot-price {
+    font-size: 16px;
+  }
+
+  .spot-pair-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 8px;
+  }
+  .spot-pair-tabs .btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .spot-toolbar {
+    padding: 6px 0;
+    margin-bottom: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .spot-page-full {
+    height: calc(100vh - 160px);
+  }
+  .live-dot-label {
+    font-size: 11px;
+  }
+  .change-pill {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+  .tf-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+}
