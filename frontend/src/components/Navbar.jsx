@@ -3,45 +3,14 @@ import logo from "../logo - Copy.jpeg";
 
 export default function Navbar() {
   return (
-    <div className="navbar" style={{ borderBottom: "none", boxShadow: "none" }}>
-      <div
-        className="container"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          width: "100%",
-          alignItems: "center",
-        }}
-      >
+    <div className="navbar navbar-landing">
+      <div className="container navbar-landing-inner">
         <Link to="/" className="logo">
-          <img
-            src={logo}
-            alt="PixellTrade"
-            style={{ height: "32px", width: "auto" }}
-          />
+          <img src={logo} alt="PixellTrade" className="navbar-logo-img" />
           PixellTrade
         </Link>
-        <nav
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            marginLeft: "auto",
-          }}
-        >
-          <Link
-            to="/login"
-            aria-label="Sign in"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "36px",
-              height: "36px",
-              borderRadius: "50%",
-              color: "inherit",
-            }}
-          >
+        <nav className="navbar-landing-actions">
+          <Link to="/login" aria-label="Sign in" className="navbar-signin-icon">
             <svg
               width="20"
               height="20"
@@ -56,15 +25,7 @@ export default function Navbar() {
               <circle cx="12" cy="7" r="4" />
             </svg>
           </Link>
-          <Link
-            to="/signup"
-            className="btn btn-primary"
-            style={{
-              padding: "8px 28px",
-              borderRadius: "6px",
-              lineHeight: "1",
-            }}
-          >
+          <Link to="/signup" className="btn btn-primary navbar-get-started">
             Get started
           </Link>
         </nav>
