@@ -1,147 +1,132 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import logo from "../logo - Copy.jpeg";
 
-const links = [
-  {
-    to: "/dashboard",
-    label: "Dashboard",
-    icon: (
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect x="3" y="3" width="7" height="9" rx="1" />
-        <rect x="14" y="3" width="7" height="5" rx="1" />
-        <rect x="14" y="12" width="7" height="9" rx="1" />
-        <rect x="3" y="16" width="7" height="5" rx="1" />
-      </svg>
-    ),
-  },
-  {
-    to: "/markets",
-    label: "Markets",
-    icon: (
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M3 3v18h18" />
-        <path d="M18 9l-5 5-4-4-4 4" />
-      </svg>
-    ),
-  },
-  {
-    to: "/spot",
-    label: "Spot",
-    icon: (
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M17 3 21 7l-4 4" />
-        <path d="M3 11V9a2 2 0 0 1 2-2h16" />
-        <path d="M7 21 3 17l4-4" />
-        <path d="M21 13v2a2 2 0 0 1-2 2H3" />
-      </svg>
-    ),
-  },
-  {
-    to: "/bots",
-    label: "Bots",
-    icon: (
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect x="4" y="8" width="16" height="12" rx="2" />
-        <path d="M12 8V4" />
-        <circle cx="12" cy="4" r="1" />
-        <path d="M9 13v2" />
-        <path d="M15 13v2" />
-      </svg>
-    ),
-  },
-];
-
-export default function Sidebar() {
+export default function Signup() {
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  async function handleSignOut() {
-    await supabase.auth.signOut();
-    navigate("/");
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { username },
+      },
+    });
+
+    setLoading(false);
+
+    if (error) return setError(error.message);
+
+    if (data.session) {
+      // Email confirmation is disabled — user is signed in immediately
+      navigate("/dashboard");
+    } else {
+      // Email confirmation is required — no session yet
+      setError("Check your email to confirm your account before logging in.");
+    }
   }
 
   return (
-    <header className="app-header">
-      <div className="container app-header-inner">
-        <div className="logo">
-          <img
-            src={logo}
-            alt="PixellTrade"
-            style={{ height: 28, width: "auto", borderRadius: 6 }}
+    <div className="auth-shell">
+      <form className="auth-card" onSubmit={handleSubmit}>
+        <div className="auth-logo-badge">
+          <img src={logo} alt="PixellTrade" />
+        </div>
+        <h2>Create Account</h2>
+        <p className="sub">
+          Already have an account? <Link to="/login">Sign in</Link>
+        </p>
+
+        <div className="field field-icon">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" />
+          </svg>
+          <input
+            type="text"
+            required
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
           />
-          PixellTrade
         </div>
 
-        <nav className="app-header-nav">
-          {links.map((l) => (
-            <NavLink
-              key={l.to}
-              to={l.to}
-              className={({ isActive }) => (isActive ? "active" : "")}
-            >
-              {l.icon}
-              {l.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="app-header-actions">
-          <span className="app-header-user" aria-label="Account">
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          </span>
-          <button className="btn btn-ghost" onClick={handleSignOut}>
-            Sign out
-          </button>
+        <div className="field field-icon">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <path d="m22 6-10 7L2 6" />
+          </svg>
+          <input
+            type="email"
+            required
+            placeholder="email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
         </div>
-      </div>
-    </header>
+
+        <div className="field field-icon">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="3" y="11" width="18" height="11" rx="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <input
+            type="password"
+            required
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+
+        {error && <p className="error-text">{error}</p>}
+
+        <button
+          className="btn btn-primary"
+          style={{ width: "100%", justifyContent: "center" }}
+          disabled={loading}
+        >
+          {loading ? "Creating account…" : "Sign up"}
+        </button>
+      </form>
+    </div>
   );
 }
