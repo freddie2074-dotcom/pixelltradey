@@ -3156,7 +3156,7 @@ h3 {
 .spot-page-full {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 100px);
+  height: calc(100vh - 64px);
 }
 
 .spot-chart-panel-full {
@@ -3169,7 +3169,7 @@ h3 {
 
 @media (max-width: 768px) {
   .spot-page-full {
-    height: calc(100vh - 140px);
+    height: calc(100vh - 90px);
   }
 
   .spot-header {
@@ -3211,7 +3211,7 @@ h3 {
 
 @media (max-width: 480px) {
   .spot-page-full {
-    height: calc(100vh - 160px);
+    height: calc(100vh - 100px);
   }
   .live-dot-label {
     font-size: 11px;
