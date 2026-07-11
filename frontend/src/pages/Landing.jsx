@@ -190,8 +190,8 @@ export default function Landing() {
                 backgroundImage: `url(${phoneImage})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
-                borderRadius: "var(--radius)",
-                minHeight: 340,
+                borderRadius: 0,
+                minHeight: 400,
                 border: "1px solid var(--border)",
               }}
             />
