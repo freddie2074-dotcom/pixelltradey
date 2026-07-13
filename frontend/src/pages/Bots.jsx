@@ -1,29 +1,29 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 
-// ---------- Error Boundary (kept for global safety) ----------
-class ErrorBoundary extends React.Component {
+// ---------- Error Boundary (per‑card) ----------
+class CardErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, info: null };
   }
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }
   componentDidCatch(error, errorInfo) {
-    console.error("ErrorBoundary caught:", error, errorInfo);
+    console.error(`[CardErrorBoundary] ${this.props.name} error:`, error, errorInfo);
+    this.setState({ info: errorInfo });
   }
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: 20, background: "#f8d7da", color: "#721c24" }}>
-          <h3>Something went wrong</h3>
-          <p><strong>{this.state.error?.message}</strong></p>
+        <div style={{ border: "1px solid red", padding: 16, margin: 10, background: "#1a1a2e" }}>
+          <h4>⚠️ Error in {this.props.name}</h4>
+          <p style={{ color: "#ff6b6b" }}>{this.state.error?.message}</p>
           <details>
             <summary>Stack trace</summary>
-            <pre>{this.state.error?.stack}</pre>
+            <pre style={{ fontSize: 12 }}>{this.state.error?.stack}</pre>
           </details>
-          <button onClick={() => window.location.reload()}>Reload page</button>
         </div>
       );
     }
@@ -65,12 +65,11 @@ function fmtUsd(n) {
   return `${sign}$${Math.abs(v).toFixed(2)}`;
 }
 
-// ---------- ULTRA‑SAFE CONFIG FORM (no CSS classes, all inline) ----------
+// ---------- ULTRA‑SAFE CONFIG FORM (no CSS classes, only inline styles) ----------
 function SafeConfigForm({ meta, onSave, onCancel }) {
   console.log("SafeConfigForm received meta:", meta);
   const [amount, setAmount] = useState(100);
 
-  // If meta is invalid, show a simple message
   if (!meta || typeof meta !== "object") {
     return (
       <div style={{ border: "1px solid red", padding: 10, color: "red" }}>
@@ -91,7 +90,6 @@ function SafeConfigForm({ meta, onSave, onCancel }) {
       losses: 0,
     };
     if (typeof onSave === "function") onSave(bot);
-    else console.error("onSave is not a function");
   };
 
   return (
@@ -119,8 +117,9 @@ function SafeConfigForm({ meta, onSave, onCancel }) {
   );
 }
 
-// ---------- Bot Card (with full try/catch around render) ----------
+// ---------- Bot Card (wrapped in its own error boundary) ----------
 function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
+  console.log(`BotCard render for ${botType} with bot:`, bot);
   const meta = BOT_META[botType];
   const [configuring, setConfiguring] = useState(false);
   const [showTrades, setShowTrades] = useState(false);
@@ -133,30 +132,29 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
     };
   }, []);
 
-  // ----- The entire render is inside try/catch -----
-  try {
-    // If we are configuring and no bot exists, show the safe form
-    if (!bot && configuring) {
-      if (!meta) {
-        return <div style={{ color: "red" }}>❌ Meta missing</div>;
-      }
-      return (
-        <SafeConfigForm
-          meta={meta}
-          onSave={(newBot) => {
-            if (typeof onCreated === "function") onCreated(newBot);
-            setConfiguring(false);
-          }}
-          onCancel={() => setConfiguring(false)}
-        />
-      );
-    }
-
-    // If meta is missing, show error
+  // ---------- Early returns (safe) ----------
+  if (!bot && configuring) {
     if (!meta) {
-      return <div style={{ color: "red" }}>❌ Meta missing for {botType}</div>;
+      return <div style={{ color: "red" }}>❌ Meta missing</div>;
     }
+    return (
+      <SafeConfigForm
+        meta={meta}
+        onSave={(newBot) => {
+          if (typeof onCreated === "function") onCreated(newBot);
+          setConfiguring(false);
+        }}
+        onCancel={() => setConfiguring(false)}
+      />
+    );
+  }
 
+  if (!meta) {
+    return <div style={{ color: "red" }}>❌ Meta missing for {botType}</div>;
+  }
+
+  // ---------- Main render (still inside try/catch for safety) ----------
+  try {
     const isActive = bot?.active || false;
     const badgeText = !bot ? "Not Configured" : isActive ? "active" : "Not Started";
     const badgeClass = !bot ? "off" : isActive ? "on" : "off";
@@ -217,7 +215,7 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
       if (typeof onUpdated === "function") onUpdated(null, bot?.id);
     };
 
-    // ---------- Render the main bot card (original layout) ----------
+    // ---------- Return the main card JSX ----------
     return (
       <div className="bot-card">
         <div className="bot-head">
@@ -324,11 +322,10 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
       </div>
     );
   } catch (err) {
-    console.error("BotCard render error:", err);
-    // Return a fallback card with the error message
+    console.error(`BotCard (${botType}) render error:`, err);
     return (
-      <div style={{ border: "1px solid red", padding: 16, margin: 10 }}>
-        <h4>⚠️ Error rendering bot</h4>
+      <div style={{ border: "1px solid orange", padding: 16, margin: 10 }}>
+        <h4>⚠️ Render error</h4>
         <p>{err.message}</p>
         <button onClick={() => setConfiguring(false)}>Close</button>
       </div>
@@ -336,7 +333,7 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
   }
 }
 
-// ---------- BotsContent (parent) ----------
+// ---------- BotsContent ----------
 function BotsContent() {
   const [bots, setBots] = useState([]);
   const [balance, setBalance] = useState(0);
@@ -400,73 +397,115 @@ function BotsContent() {
   const meetsMinBalance = Number(balance) >= MIN_CONFIGURE_BALANCE;
   const statusLabel = meetsMinBalance ? "Ready" : "Locked";
 
-  return (
-    <>
-      <div className="bots-hero">
-        <div className="bots-hero-content">
-          <h2>Automated Trading</h2>
-          <p>Create and manage algorithmic trading strategies</p>
-          <div className="bots-hero-stats">
-            <div className="bots-hero-stat">
-              <div className="bots-hero-stat-value">{totalBots}</div>
-              <div className="bots-hero-stat-label">Total Bots</div>
-            </div>
-            <div className="bots-hero-stat">
-              <div className="bots-hero-stat-value">
-                {balanceLoading ? "…" : `$${Number(balance).toFixed(2)}`}
+  // Wrap the whole return in try/catch
+  try {
+    return (
+      <>
+        <div className="bots-hero">
+          <div className="bots-hero-content">
+            <h2>Automated Trading</h2>
+            <p>Create and manage algorithmic trading strategies</p>
+            <div className="bots-hero-stats">
+              <div className="bots-hero-stat">
+                <div className="bots-hero-stat-value">{totalBots}</div>
+                <div className="bots-hero-stat-label">Total Bots</div>
               </div>
-              <div className="bots-hero-stat-label">Available Balance</div>
-            </div>
-            <div className="bots-hero-stat">
-              <div
-                className={`bots-hero-stat-value ${meetsMinBalance ? "up" : "down"}`}
-              >
-                {statusLabel}
+              <div className="bots-hero-stat">
+                <div className="bots-hero-stat-value">
+                  {balanceLoading ? "…" : `$${Number(balance).toFixed(2)}`}
+                </div>
+                <div className="bots-hero-stat-label">Available Balance</div>
               </div>
-              <div className="bots-hero-stat-label">Bot Status</div>
+              <div className="bots-hero-stat">
+                <div
+                  className={`bots-hero-stat-value ${meetsMinBalance ? "up" : "down"}`}
+                >
+                  {statusLabel}
+                </div>
+                <div className="bots-hero-stat-label">Bot Status</div>
+              </div>
             </div>
           </div>
+          <button className="btn bots-hero-cta">Create New Bot →</button>
         </div>
-        <button className="btn bots-hero-cta">Create New Bot →</button>
-      </div>
 
-      {balanceError && <p className="error-text">{balanceError}</p>}
+        {balanceError && <p className="error-text">{balanceError}</p>}
 
-      <div className="dca-section-header">
-        <div>
-          <h3>Dollar-Cost Averaging Bots</h3>
-          <p>Regular purchases of assets regardless of price</p>
+        <div className="dca-section-header">
+          <div>
+            <h3>Dollar-Cost Averaging Bots</h3>
+            <p>Regular purchases of assets regardless of price</p>
+          </div>
+          <button className="btn btn-primary">Create DCA Bot</button>
         </div>
-        <button className="btn btn-primary">Create DCA Bot</button>
-      </div>
 
-      <div className="bot-grid">
-        <BotCard
-          botType="btc_accumulation"
-          bot={byType("btc_accumulation")}
-          balance={balance}
-          onCreated={handleCreated}
-          onUpdated={handleUpdated}
-          userId={userId}
-        />
-        <BotCard
-          botType="eth_dca_pro"
-          bot={byType("eth_dca_pro")}
-          balance={balance}
-          onCreated={handleCreated}
-          onUpdated={handleUpdated}
-          userId={userId}
-        />
-      </div>
-    </>
-  );
+        <div className="bot-grid">
+          {/* Each BotCard is wrapped in its own ErrorBoundary */}
+          <CardErrorBoundary name="BTC Bot">
+            <BotCard
+              botType="btc_accumulation"
+              bot={byType("btc_accumulation")}
+              balance={balance}
+              onCreated={handleCreated}
+              onUpdated={handleUpdated}
+              userId={userId}
+            />
+          </CardErrorBoundary>
+
+          <CardErrorBoundary name="ETH Bot">
+            <BotCard
+              botType="eth_dca_pro"
+              bot={byType("eth_dca_pro")}
+              balance={balance}
+              onCreated={handleCreated}
+              onUpdated={handleUpdated}
+              userId={userId}
+            />
+          </CardErrorBoundary>
+        </div>
+      </>
+    );
+  } catch (err) {
+    console.error("BotsContent render error:", err);
+    return <div style={{ color: "red", padding: 20 }}>Failed to render bots page.</div>;
+  }
 }
 
-// ---------- Export with ErrorBoundary ----------
+// ---------- Global Export with fallback boundary ----------
 export default function Bots() {
   return (
     <ErrorBoundary>
       <BotsContent />
     </ErrorBoundary>
   );
+}
+
+// ---------- Global ErrorBoundary (just in case) ----------
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("Global ErrorBoundary caught:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 20, background: "#f8d7da", color: "#721c24" }}>
+          <h3>Something went wrong</h3>
+          <p><strong>{this.state.error?.message}</strong></p>
+          <details>
+            <summary>Stack trace</summary>
+            <pre>{this.state.error?.stack}</pre>
+          </details>
+          <button onClick={() => window.location.reload()}>Reload page</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
