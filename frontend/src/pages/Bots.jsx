@@ -199,10 +199,10 @@ function BotCard({ botType, bot, balance, error, onCreated, onStart, onStop, onR
               disabled={!canConfigure}
               onClick={() => setConfiguring(true)}
             >
-              ⚙️ Configure
+              Configure
             </button>
             <button className="btn btn-outline" style={{ flex: 1, justifyContent: "center" }} disabled>
-              ▶ Start Bot
+             Start Bot
             </button>
           </div>
           {!canConfigure && (
@@ -218,7 +218,7 @@ function BotCard({ botType, bot, balance, error, onCreated, onStart, onStop, onR
             style={{ flex: 1, justifyContent: "center" }}
             onClick={() => onStart(botType)}
           >
-            ▶ Start Bot
+             Start Bot
           </button>
           <button
             className="btn btn-outline"
@@ -235,7 +235,7 @@ function BotCard({ botType, bot, balance, error, onCreated, onStart, onStop, onR
             style={{ flex: 1, justifyContent: "center" }}
             onClick={() => onStop(botType)}
           >
-            ■ Stop
+             Stop
           </button>
           <button
             className="btn btn-ghost"
