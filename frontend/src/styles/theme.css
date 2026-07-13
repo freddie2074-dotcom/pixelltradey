@@ -3225,3 +3225,41 @@ h3 {
     font-size: 12px;
   }
 }
+/* ---------- Bot activity log ---------- */
+.activity-log {
+  margin-top: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.activity-log-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.activity-log-time {
+  color: var(--text-muted);
+  min-width: 92px;
+}
+.activity-log-arrow.up,
+.activity-log-amount.up,
+.activity-log-percent.up {
+  color: var(--gain);
+}
+.activity-log-arrow.down,
+.activity-log-amount.down,
+.activity-log-percent.down {
+  color: var(--loss);
+}
+.activity-log-label {
+  color: var(--text);
+  font-weight: 600;
+}
