@@ -5,7 +5,7 @@ import { supabase } from "../supabaseClient";
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, info: null };
   }
 
   static getDerivedStateFromError(error) {
@@ -13,16 +13,23 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error("Caught error:", error, errorInfo);
+    console.error("ErrorBoundary caught:", error, errorInfo);
+    this.setState({ info: errorInfo });
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="error-text" style={{ padding: 20 }}>
+        <div style={{ padding: 20, background: "#f8d7da", color: "#721c24" }}>
           <h3>Something went wrong</h3>
-          <p>{this.state.error?.message || "Unknown error"}</p>
-          <button onClick={() => window.location.reload()}>Reload page</button>
+          <p><strong>Error:</strong> {this.state.error?.message || "Unknown error"}</p>
+          <details style={{ whiteSpace: "pre-wrap", marginTop: 10 }}>
+            <summary>Stack trace</summary>
+            {this.state.error?.stack}
+          </details>
+          <button onClick={() => window.location.reload()} style={{ marginTop: 10 }}>
+            Reload page
+          </button>
         </div>
       );
     }
@@ -64,14 +71,15 @@ function fmtUsd(n) {
   return `${sign}$${Math.abs(v).toFixed(2)}`;
 }
 
-// ---------- Configuration Form ----------
+// ---------- Configuration Form (with extra checks) ----------
 function CreateBotForm({ botType, onCreated, onCancel }) {
+  // Guard: ensure meta exists
   const meta = BOT_META[botType];
-  const [amount, setAmount] = useState(100);
-
   if (!meta) {
-    return <div className="error-text">Unknown bot type: {botType}</div>;
+    return <div className="error-text">❌ Unknown bot type: {botType}</div>;
   }
+
+  const [amount, setAmount] = useState(100);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -84,7 +92,12 @@ function CreateBotForm({ botType, onCreated, onCancel }) {
       wins: 0,
       losses: 0,
     };
-    onCreated(bot);
+    // Ensure onCreated is a function
+    if (typeof onCreated === "function") {
+      onCreated(bot);
+    } else {
+      console.error("onCreated is not a function", onCreated);
+    }
   };
 
   return (
@@ -120,6 +133,7 @@ function CreateBotForm({ botType, onCreated, onCancel }) {
           Cancel
         </button>
         <button
+          type="submit"
           className="btn btn-primary"
           style={{ flex: 1, justifyContent: "center" }}
         >
@@ -144,13 +158,15 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
     };
   }, []);
 
-  // If bot doesn't exist and we are configuring, show the form
+  // If no bot and we are configuring, show the form
   if (!bot && configuring) {
     return (
       <CreateBotForm
         botType={botType}
         onCreated={(newBot) => {
-          onCreated(newBot);
+          if (typeof onCreated === "function") {
+            onCreated(newBot);
+          }
           setConfiguring(false);
         }}
         onCancel={() => setConfiguring(false)}
@@ -158,9 +174,9 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
     );
   }
 
-  // Guard if meta missing
+  // Guard if meta is missing (should not happen)
   if (!meta) {
-    return <div className="error-text">Bot metadata missing</div>;
+    return <div className="error-text">❌ Bot metadata missing for {botType}</div>;
   }
 
   const isActive = bot?.active || false;
@@ -197,10 +213,14 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
         .update({ balance: newBalance })
         .eq("id", userId);
       if (error) throw error;
-      onUpdated(updatedBot, null, newBalance);
+      if (typeof onUpdated === "function") {
+        onUpdated(updatedBot, null, newBalance);
+      }
     } catch (err) {
       console.error("Balance update failed:", err);
-      onUpdated(updatedBot, null, balance);
+      if (typeof onUpdated === "function") {
+        onUpdated(updatedBot, null, balance);
+      }
     }
   };
 
@@ -222,12 +242,16 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
 
   // Handlers
   const toggleActive = () => {
-    if (bot) onUpdated({ ...bot, active: !bot.active });
+    if (bot && typeof onUpdated === "function") {
+      onUpdated({ ...bot, active: !bot.active });
+    }
   };
 
   const remove = () => {
     if (!confirm(`Delete ${meta.label}? This stops the bot permanently.`)) return;
-    onUpdated(null, bot?.id);
+    if (typeof onUpdated === "function") {
+      onUpdated(null, bot?.id);
+    }
   };
 
   return (
@@ -337,7 +361,7 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
   );
 }
 
-// ---------- Parent Component (Bots) ----------
+// ---------- Parent Component ----------
 function BotsContent() {
   const [bots, setBots] = useState([]);
   const [balance, setBalance] = useState(0);
@@ -479,7 +503,7 @@ function BotsContent() {
   );
 }
 
-// ---------- Exported component with ErrorBoundary ----------
+// ---------- Export with ErrorBoundary ----------
 export default function Bots() {
   return (
     <ErrorBoundary>
