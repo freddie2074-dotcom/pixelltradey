@@ -106,7 +106,7 @@ function SafeConfigForm({ meta, onSave, onCancel }) {
 
   // If meta is invalid, show a plain message
   if (!meta || typeof meta !== "object") {
-    return <div style={{ color: "red" }}>❌ Missing bot metadata</div>;
+    return <div className="error-text">❌ Missing bot metadata</div>;
   }
 
   const handleSubmit = (e) => {
@@ -129,24 +129,41 @@ function SafeConfigForm({ meta, onSave, onCancel }) {
 
   try {
     return (
-      <div style={{ border: "1px solid #ccc", padding: 16, margin: "10px 0" }}>
-        <h3>{String(meta.icon)} {String(meta.label)}</h3>
+      <div className="bot-card">
+        <div className="bot-head">
+          <h3>{meta.icon} {meta.label}</h3>
+        </div>
+
         <form onSubmit={handleSubmit}>
-          <div style={{ marginTop: 8 }}>
-            <label>Buy amount (USDT): </label>
+          <div className="form-group" style={{ marginTop: 12 }}>
+            <label className="bot-stat-label">Buy amount (USDT)</label>
             <input
               type="number"
               min="50"
+              className="input"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
+              autoFocus
             />
-            <p style={{ fontSize: "0.8rem", color: "#666" }}>Min amount: $50</p>
+            <p className="bot-min-balance-note">Min amount: $50</p>
           </div>
-          <div style={{ marginTop: 10 }}>
-            <button type="button" onClick={onCancel} style={{ marginRight: 10 }}>
+
+          <div className="bot-card-buttons" style={{ marginTop: 16 }}>
+            <button
+              type="button"
+              className="btn btn-outline"
+              style={{ flex: 1, justifyContent: "center" }}
+              onClick={onCancel}
+            >
               Cancel
             </button>
-            <button type="submit">Save</button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              style={{ flex: 1, justifyContent: "center" }}
+            >
+              ✓ Save
+            </button>
           </div>
         </form>
       </div>
@@ -154,10 +171,10 @@ function SafeConfigForm({ meta, onSave, onCancel }) {
   } catch (err) {
     console.error("SafeConfigForm render error:", err);
     return (
-      <div style={{ border: "1px solid red", padding: 10 }}>
+      <div className="bot-card" style={{ borderColor: "var(--loss)" }}>
         <h4>⚠️ Error rendering form</h4>
         <p>{err.message}</p>
-        <button onClick={onCancel}>Close</button>
+        <button className="btn btn-outline" onClick={onCancel}>Close</button>
       </div>
     );
   }
@@ -180,7 +197,7 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
     };
   }, []);
 
-  // Trade simulation
+  // Trade simulation (win rate 57%–64%)
   const executeTrade = async () => {
     if (!bot || !isActive) return;
     try {
