@@ -65,13 +65,12 @@ function fmtUsd(n) {
   return `${sign}$${Math.abs(v).toFixed(2)}`;
 }
 
-// ---------- Configuration Form (original layout, with try/catch) ----------
+// ---------- Configuration Form (with its own error boundary) ----------
 function CreateBotForm({ meta, onCreated, onCancel }) {
-  console.log("CreateBotForm rendered with meta:", meta);
+  console.log("CreateBotForm received meta:", meta);
 
-  // Fallback if meta is missing
+  // Guard: if meta is invalid, show a fallback
   if (!meta || typeof meta !== "object") {
-    console.error("CreateBotForm: invalid meta", meta);
     return <div className="error-text">❌ Bot metadata is missing.</div>;
   }
 
@@ -89,16 +88,14 @@ function CreateBotForm({ meta, onCreated, onCancel }) {
         wins: 0,
         losses: 0,
       };
-      if (typeof onCreated === "function") {
-        onCreated(bot);
-      } else {
-        console.error("onCreated is not a function", onCreated);
-      }
+      if (typeof onCreated === "function") onCreated(bot);
+      else console.error("onCreated is not a function");
     } catch (err) {
       console.error("Error in handleSubmit:", err);
     }
   };
 
+  // Wrap the JSX in try/catch to catch rendering errors
   try {
     return (
       <form className="bot-card" onSubmit={handleSubmit}>
@@ -143,124 +140,125 @@ function CreateBotForm({ meta, onCreated, onCancel }) {
       </form>
     );
   } catch (err) {
-    console.error("Error rendering CreateBotForm:", err);
-    return <div className="error-text">Failed to render configuration form.</div>;
+    console.error("CreateBotForm render error:", err);
+    // Fallback: show a simple form without CSS classes
+    return (
+      <div style={{ border: "1px solid #ccc", padding: 20, margin: 10 }}>
+        <h3>Configure Bot (fallback)</h3>
+        <label>Amount: </label>
+        <input
+          type="number"
+          min="50"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+        />
+        <div style={{ marginTop: 10 }}>
+          <button onClick={onCancel}>Cancel</button>
+          <button onClick={handleSubmit} style={{ marginLeft: 10 }}>Save</button>
+        </div>
+      </div>
+    );
   }
 }
 
-// ---------- Bot Card (original layout, with try/catch and guards) ----------
+// ---------- Bot Card (full try/catch around entire render) ----------
 function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
   const meta = BOT_META[botType];
   const [configuring, setConfiguring] = useState(false);
   const [showTrades, setShowTrades] = useState(false);
   const intervalRef = useRef(null);
 
-  // Cleanup interval
+  // Cleanup
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
 
-  // If bot is null and we are configuring, show the form
+  // ----- This is the EARLY RETURN for configuring – we wrap it in try/catch -----
   if (!bot && configuring) {
-    if (!meta) {
-      return <div className="error-text">❌ Metadata missing for {botType}</div>;
-    }
-    return (
-      <CreateBotForm
-        meta={meta}
-        onCreated={(newBot) => {
-          if (typeof onCreated === "function") {
-            onCreated(newBot);
-          }
-          setConfiguring(false);
-        }}
-        onCancel={() => setConfiguring(false)}
-      />
-    );
-  }
-
-  // If meta missing, show error
-  if (!meta) {
-    return <div className="error-text">❌ Metadata missing for {botType}</div>;
-  }
-
-  const isActive = bot?.active || false;
-  const badgeText = !bot ? "Not Configured" : isActive ? "active" : "Not Started";
-  const badgeClass = !bot ? "off" : isActive ? "on" : "off";
-  const meetsMinBalance = Number(balance) >= MIN_CONFIGURE_BALANCE;
-  const canConfigure = !!bot || meetsMinBalance;
-
-  const pnl = bot?.pnl_usdt ?? 0;
-  const wins = bot?.wins ?? 0;
-  const losses = bot?.losses ?? 0;
-
-  // ---------- Trade Simulation ----------
-  const executeTrade = async () => {
-    if (!bot || !isActive) return;
     try {
-      const winRate = 0.57 + Math.random() * 0.07;
-      const isWin = Math.random() < winRate;
-      const pnlPercent = (Math.random() * 10 - 5) / 100;
-      const tradeAmount = bot.amount_usdt;
-      const tradePnl = tradeAmount * pnlPercent;
-
-      const updatedBot = {
-        ...bot,
-        pnl_usdt: bot.pnl_usdt + tradePnl,
-        wins: isWin ? bot.wins + 1 : bot.wins,
-        losses: isWin ? bot.losses : bot.losses + 1,
-      };
-
-      const newBalance = Number(balance) + tradePnl;
-      const { error } = await supabase
-        .from("profiles")
-        .update({ balance: newBalance })
-        .eq("id", userId);
-      if (error) throw error;
-      if (typeof onUpdated === "function") {
-        onUpdated(updatedBot, null, newBalance);
-      }
+      if (!meta) throw new Error(`Metadata missing for ${botType}`);
+      return (
+        <CreateBotForm
+          meta={meta}
+          onCreated={(newBot) => {
+            if (typeof onCreated === "function") onCreated(newBot);
+            setConfiguring(false);
+          }}
+          onCancel={() => setConfiguring(false)}
+        />
+      );
     } catch (err) {
-      console.error("Trade execution failed:", err);
-      if (typeof onUpdated === "function") {
-        onUpdated(bot, null, balance);
-      }
+      console.error("Error rendering config form:", err);
+      return <div className="error-text">❌ Failed to load configuration form.</div>;
     }
-  };
+  }
 
-  // Start/stop interval
-  useEffect(() => {
-    if (isActive && bot) {
-      intervalRef.current = setInterval(executeTrade, 10000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isActive, bot]);
-
-  // Handlers
-  const toggleActive = () => {
-    if (bot && typeof onUpdated === "function") {
-      onUpdated({ ...bot, active: !bot.active });
-    }
-  };
-
-  const remove = () => {
-    if (!confirm(`Delete ${meta.label}? This stops the bot permanently.`)) return;
-    if (typeof onUpdated === "function") {
-      onUpdated(null, bot?.id);
-    }
-  };
-
-  // Catch any error during rendering of the main card
+  // ----- Main render (also wrapped in try/catch) -----
   try {
+    if (!meta) throw new Error(`Metadata missing for ${botType}`);
+
+    const isActive = bot?.active || false;
+    const badgeText = !bot ? "Not Configured" : isActive ? "active" : "Not Started";
+    const badgeClass = !bot ? "off" : isActive ? "on" : "off";
+    const meetsMinBalance = Number(balance) >= MIN_CONFIGURE_BALANCE;
+    const canConfigure = !!bot || meetsMinBalance;
+    const pnl = bot?.pnl_usdt ?? 0;
+    const wins = bot?.wins ?? 0;
+    const losses = bot?.losses ?? 0;
+
+    // ---------- Trade Simulation ----------
+    const executeTrade = async () => {
+      if (!bot || !isActive) return;
+      try {
+        const winRate = 0.57 + Math.random() * 0.07;
+        const isWin = Math.random() < winRate;
+        const pnlPercent = (Math.random() * 10 - 5) / 100;
+        const tradePnl = bot.amount_usdt * pnlPercent;
+
+        const updatedBot = {
+          ...bot,
+          pnl_usdt: bot.pnl_usdt + tradePnl,
+          wins: isWin ? bot.wins + 1 : bot.wins,
+          losses: isWin ? bot.losses : bot.losses + 1,
+        };
+
+        const newBalance = Number(balance) + tradePnl;
+        const { error } = await supabase
+          .from("profiles")
+          .update({ balance: newBalance })
+          .eq("id", userId);
+        if (error) throw error;
+        if (typeof onUpdated === "function") onUpdated(updatedBot, null, newBalance);
+      } catch (err) {
+        console.error("Trade execution failed:", err);
+        if (typeof onUpdated === "function") onUpdated(bot, null, balance);
+      }
+    };
+
+    useEffect(() => {
+      if (isActive && bot) {
+        intervalRef.current = setInterval(executeTrade, 10000);
+      } else {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+      }
+      return () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+      };
+    }, [isActive, bot]);
+
+    const toggleActive = () => {
+      if (bot && typeof onUpdated === "function") {
+        onUpdated({ ...bot, active: !bot.active });
+      }
+    };
+
+    const remove = () => {
+      if (!confirm(`Delete ${meta.label}?`)) return;
+      if (typeof onUpdated === "function") onUpdated(null, bot?.id);
+    };
+
     return (
       <div className="bot-card">
         <div className="bot-head">
@@ -367,12 +365,12 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
       </div>
     );
   } catch (err) {
-    console.error("Error rendering BotCard:", err);
-    return <div className="error-text">Failed to render bot card.</div>;
+    console.error("BotCard render error:", err);
+    return <div className="error-text">❌ Failed to render bot card.</div>;
   }
 }
 
-// ---------- Parent Component (BotsContent) ----------
+// ---------- BotsContent ----------
 function BotsContent() {
   const [bots, setBots] = useState([]);
   const [balance, setBalance] = useState(0);
@@ -384,12 +382,9 @@ function BotsContent() {
     async function loadUserAndBalance() {
       setBalanceLoading(true);
       try {
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError) throw userError;
-        if (!user) throw new Error("No logged-in user found.");
+        if (!user) throw new Error("No logged-in user");
         setUserId(user.id);
 
         const { data, error } = await supabase
@@ -424,29 +419,21 @@ function BotsContent() {
     return () => supabase.removeChannel(channel);
   }, []);
 
-  const handleCreated = (bot) => {
-    setBots((prev) => [bot, ...prev]);
-  };
-
+  const handleCreated = (bot) => setBots(prev => [bot, ...prev]);
   const handleUpdated = (bot, deletedId, newBalance) => {
     if (deletedId) {
-      setBots((prev) => prev.filter((b) => b.id !== deletedId));
+      setBots(prev => prev.filter(b => b.id !== deletedId));
       return;
     }
-    if (bot) {
-      setBots((prev) => prev.map((b) => (b.id === bot.id ? bot : b)));
-    }
-    if (newBalance !== undefined) {
-      setBalance(newBalance);
-    }
+    if (bot) setBots(prev => prev.map(b => b.id === bot.id ? bot : b));
+    if (newBalance !== undefined) setBalance(newBalance);
   };
 
-  const byType = (type) => bots.find((b) => b.bot_type === type);
+  const byType = (type) => bots.find(b => b.bot_type === type);
   const totalBots = Object.keys(BOT_META).length;
   const meetsMinBalance = Number(balance) >= MIN_CONFIGURE_BALANCE;
   const statusLabel = meetsMinBalance ? "Ready" : "Locked";
 
-  // Wrap the entire content in a try/catch to catch rendering errors
   try {
     return (
       <>
@@ -509,8 +496,8 @@ function BotsContent() {
       </>
     );
   } catch (err) {
-    console.error("Error in BotsContent render:", err);
-    return <div className="error-text">Failed to render the bots page.</div>;
+    console.error("BotsContent render error:", err);
+    return <div className="error-text">Failed to render bots page.</div>;
   }
 }
 
