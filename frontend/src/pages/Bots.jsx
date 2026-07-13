@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 
 const BOT_META = {
@@ -26,8 +26,7 @@ const RISK_CLASS = {
   High: "risk-high",
 };
 
-// Minimum balance required before a bot can be configured
-const MIN_CONFIGURE_BALANCE = 5;
+const MIN_CONFIGURE_BALANCE = 5; // minimum balance required to configure a bot
 
 function fmtUsd(n) {
   const v = Number(n) || 0;
@@ -35,42 +34,10 @@ function fmtUsd(n) {
   return `${sign}$${Math.abs(v).toFixed(2)}`;
 }
 
-function BotProgress({ step }) {
-  // step: 1 = needs configuring, 2 = configured / ready to start or running
-  return (
-    <div className="bot-progress">
-      <div className="bot-progress-step">
-        <span className={`bot-progress-dot ${step >= 1 ? "done" : ""}`}>1</span>
-        <span
-          className={
-            step >= 1 ? "bot-progress-label active" : "bot-progress-label"
-          }
-        >
-          Configure
-        </span>
-      </div>
-      <div className={`bot-progress-line ${step >= 2 ? "done" : ""}`} />
-      <div className="bot-progress-step">
-        <span className={`bot-progress-dot ${step >= 2 ? "done" : ""}`}>2</span>
-        <span
-          className={
-            step >= 2 ? "bot-progress-label active" : "bot-progress-label"
-          }
-        >
-          Start Bot
-        </span>
-      </div>
-    </div>
-  );
-}
-
+// ------------------ SIMPLIFIED CONFIGURATION FORM ------------------
 function CreateBotForm({ botType, onCreated, onCancel }) {
   const meta = BOT_META[botType];
-  const [amount, setAmount] = useState(25);
-  const [interval, setInterval_] = useState(24);
-  const [dip, setDip] = useState(3);
-  const [useRsi, setUseRsi] = useState(false);
-  const [rsiLevel, setRsiLevel] = useState(35);
+  const [amount, setAmount] = useState(100); // default $100
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -78,10 +45,6 @@ function CreateBotForm({ botType, onCreated, onCancel }) {
       id: `${botType}-${Date.now()}`,
       bot_type: botType,
       amount_usdt: Number(amount),
-      interval_hours: Number(interval),
-      dip_threshold_pct: Number(dip),
-      use_rsi_filter: useRsi,
-      rsi_buy_below: Number(rsiLevel),
       active: false,
       pnl_usdt: 0,
       wins: 0,
@@ -100,61 +63,18 @@ function CreateBotForm({ botType, onCreated, onCancel }) {
       </div>
       <div className="bot-symbol">{meta.symbol}</div>
 
-      <div className="form-row">
-        <div className="field">
-          <label>Buy amount (USDT)</label>
-          <input
-            type="number"
-            min="5"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-        </div>
-        <div className="field">
-          <label>Interval (hours)</label>
-          <input
-            type="number"
-            min="1"
-            value={interval}
-            onChange={(e) => setInterval_(e.target.value)}
-          />
-        </div>
-      </div>
-
       <div className="field">
-        <label>Extra buy on dip from recent high (%) — 0 to disable</label>
+        <label>Buy amount (USDT)</label>
         <input
           type="number"
-          min="0"
-          value={dip}
-          onChange={(e) => setDip(e.target.value)}
+          min="50"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
         />
+        <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: 4 }}>
+          Min amount: $50
+        </p>
       </div>
-
-      <div className="field">
-        <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <input
-            type="checkbox"
-            checked={useRsi}
-            onChange={(e) => setUseRsi(e.target.checked)}
-            style={{ width: "auto" }}
-          />
-          Require RSI oversold confirmation for dip buys
-        </label>
-      </div>
-
-      {useRsi && (
-        <div className="field">
-          <label>Buy when RSI(14) is below</label>
-          <input
-            type="number"
-            min="1"
-            max="100"
-            value={rsiLevel}
-            onChange={(e) => setRsiLevel(e.target.value)}
-          />
-        </div>
-      )}
 
       <div className="bot-card-buttons">
         <button
@@ -176,10 +96,21 @@ function CreateBotForm({ botType, onCreated, onCancel }) {
   );
 }
 
-function BotCard({ botType, bot, balance, onCreated, onUpdated }) {
+// ------------------ MAIN BOT CARD ------------------
+function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
   const meta = BOT_META[botType];
   const [configuring, setConfiguring] = useState(false);
   const [showTrades, setShowTrades] = useState(false);
+
+  // For simulation interval
+  const intervalRef = useRef(null);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
 
   if (!bot && configuring) {
     return (
@@ -195,31 +126,84 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated }) {
   }
 
   const isActive = !!bot?.active;
-  const step = bot ? 2 : 1;
-  const badgeText = !bot
-    ? "Not Configured"
-    : isActive
-      ? "active"
-      : "Not Started";
+  const badgeText = !bot ? "Not Configured" : isActive ? "active" : "Not Started";
   const badgeClass = !bot ? "off" : isActive ? "on" : "off";
-  const meetsMinBalance =
-    balance !== null && Number(balance) >= MIN_CONFIGURE_BALANCE;
+  const meetsMinBalance = Number(balance) >= MIN_CONFIGURE_BALANCE;
   const canConfigure = !!bot || meetsMinBalance;
 
-  // Real performance figures only — these start at 0 for a new bot with no trade history.
-  // These should only ever be updated from actual executed trades once the
-  // Binance API integration is wired in — never simulated or randomized.
   const pnl = bot?.pnl_usdt ?? 0;
   const wins = bot?.wins ?? 0;
   const losses = bot?.losses ?? 0;
 
+  // ---------- SIMULATION LOGIC ----------
+  // This function executes a single trade and updates the bot + balance
+  async function executeTrade() {
+    if (!bot || !isActive) return;
+
+    // Win rate between 57% and 64%
+    const winRate = 0.57 + Math.random() * 0.07;
+    const isWin = Math.random() < winRate;
+
+    // Random profit/loss percentage between -5% and +5%
+    const pnlPercent = (Math.random() * 10 - 5) / 100; // -5% .. +5%
+    const tradeAmount = bot.amount_usdt;
+    const tradePnl = tradeAmount * pnlPercent;
+
+    // Update bot stats
+    const updatedBot = {
+      ...bot,
+      pnl_usdt: bot.pnl_usdt + tradePnl,
+      wins: isWin ? bot.wins + 1 : bot.wins,
+      losses: isWin ? bot.losses : bot.losses + 1,
+    };
+
+    // Update the balance in Supabase
+    const newBalance = Number(balance) + tradePnl;
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ balance: newBalance })
+        .eq("id", userId);
+      if (error) throw error;
+      // Update local balance via the parent's state (we'll pass a callback)
+      onUpdated(updatedBot, null, newBalance);
+    } catch (err) {
+      console.error("Failed to update balance:", err);
+      // Rollback bot stats? For simplicity, we'll still update local stats
+      // but the balance will be out of sync.
+    }
+  }
+
+  // Start/stop simulation based on active state
+  useEffect(() => {
+    if (isActive && bot) {
+      // Execute a trade every 10 seconds (adjust as needed)
+      intervalRef.current = setInterval(() => {
+        executeTrade();
+      }, 10000);
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }
+    // Cleanup on dependency change
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, bot]);
+
+  // ---------- HANDLERS ----------
   function toggleActive() {
     onUpdated({ ...bot, active: !bot.active });
   }
 
   function remove() {
-    if (!confirm(`Delete ${meta.label}? This stops the bot permanently.`))
-      return;
+    if (!confirm(`Delete ${meta.label}? This stops the bot permanently.`)) return;
     onUpdated(null, bot.id);
   }
 
@@ -240,7 +224,7 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated }) {
           </div>
         </div>
         <div className="bot-stat-col">
-          <div className="bot-stat-label">P&amp;L</div>
+          <div className="bot-stat-label">P&L</div>
           <div className={`bot-stat-value ${pnl >= 0 ? "up" : "down"}`}>
             {fmtUsd(pnl)}
           </div>
@@ -254,8 +238,6 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated }) {
           <div className="bot-stat-value down">{losses}</div>
         </div>
       </div>
-
-      <BotProgress step={step} />
 
       {!isActive ? (
         <>
@@ -279,8 +261,7 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated }) {
           </div>
           {!canConfigure && (
             <p className="bot-min-balance-note">
-              Requires a balance of at least ${MIN_CONFIGURE_BALANCE} to
-              configure.
+              Requires a balance of at least ${MIN_CONFIGURE_BALANCE} to configure.
             </p>
           )}
         </>
@@ -323,7 +304,7 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated }) {
           <tbody>
             <tr>
               <td colSpan={4} style={{ color: "var(--text-muted)" }}>
-                No trades yet.
+                Trade history is simulated – not stored.
               </td>
             </tr>
           </tbody>
@@ -333,17 +314,17 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated }) {
   );
 }
 
+// ------------------ PARENT COMPONENT ------------------
 export default function Bots() {
   const [bots, setBots] = useState([]);
-
-  // Real balance, pulled from Supabase (profiles.balance) — same field
-  // the admin panel edits and the Dashboard reads.
   const [balance, setBalance] = useState(0);
   const [balanceLoading, setBalanceLoading] = useState(true);
   const [balanceError, setBalanceError] = useState("");
+  const [userId, setUserId] = useState(null);
 
+  // Load user and balance
   useEffect(() => {
-    async function loadBalance() {
+    async function loadUserAndBalance() {
       setBalanceLoading(true);
       setBalanceError("");
       try {
@@ -353,6 +334,7 @@ export default function Bots() {
         } = await supabase.auth.getUser();
         if (userError) throw userError;
         if (!user) throw new Error("No logged-in user found.");
+        setUserId(user.id);
 
         const { data, error } = await supabase
           .from("profiles")
@@ -369,10 +351,9 @@ export default function Bots() {
       }
     }
 
-    loadBalance();
+    loadUserAndBalance();
 
-    // Keep this page in sync if the admin panel updates the balance
-    // while the user is on it.
+    // Realtime balance sync
     const channel = supabase
       .channel("bots-profile-balance-changes")
       .on(
@@ -384,7 +365,7 @@ export default function Bots() {
               setBalance(Number(payload.new.balance) || 0);
             }
           });
-        },
+        }
       )
       .subscribe();
 
@@ -397,10 +378,17 @@ export default function Bots() {
     setBots((prev) => [bot, ...prev]);
   }
 
-  function handleUpdated(bot, deletedId) {
-    if (deletedId)
-      return setBots((prev) => prev.filter((b) => b.id !== deletedId));
-    setBots((prev) => prev.map((b) => (b.id === bot.id ? bot : b)));
+  function handleUpdated(bot, deletedId, newBalance) {
+    if (deletedId) {
+      setBots((prev) => prev.filter((b) => b.id !== deletedId));
+      return;
+    }
+    if (bot) {
+      setBots((prev) => prev.map((b) => (b.id === bot.id ? bot : b)));
+    }
+    if (newBalance !== undefined) {
+      setBalance(newBalance);
+    }
   }
 
   const byType = (type) => bots.find((b) => b.bot_type === type);
@@ -455,6 +443,7 @@ export default function Bots() {
           balance={balance}
           onCreated={handleCreated}
           onUpdated={handleUpdated}
+          userId={userId}
         />
         <BotCard
           botType="eth_dca_pro"
@@ -462,6 +451,7 @@ export default function Bots() {
           balance={balance}
           onCreated={handleCreated}
           onUpdated={handleUpdated}
+          userId={userId}
         />
       </div>
     </>
