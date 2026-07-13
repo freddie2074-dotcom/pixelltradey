@@ -43,7 +43,7 @@ button {
 }
 
 .mono {
-    font-family: var(--font-mono);
+    --font-mono: "Inter", sans-serif;
 }
 
 h1,
