@@ -5,31 +5,25 @@ import { supabase } from "../supabaseClient";
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null, info: null };
+    this.state = { hasError: false, error: null };
   }
-
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }
-
   componentDidCatch(error, errorInfo) {
     console.error("ErrorBoundary caught:", error, errorInfo);
-    this.setState({ info: errorInfo });
   }
-
   render() {
     if (this.state.hasError) {
       return (
         <div style={{ padding: 20, background: "#f8d7da", color: "#721c24" }}>
           <h3>Something went wrong</h3>
-          <p><strong>Error:</strong> {this.state.error?.message || "Unknown error"}</p>
-          <details style={{ whiteSpace: "pre-wrap", marginTop: 10 }}>
+          <p><strong>{this.state.error?.message}</strong></p>
+          <details>
             <summary>Stack trace</summary>
-            {this.state.error?.stack}
+            <pre>{this.state.error?.stack}</pre>
           </details>
-          <button onClick={() => window.location.reload()} style={{ marginTop: 10 }}>
-            Reload page
-          </button>
+          <button onClick={() => window.location.reload()}>Reload page</button>
         </div>
       );
     }
@@ -71,28 +65,30 @@ function fmtUsd(n) {
   return `${sign}$${Math.abs(v).toFixed(2)}`;
 }
 
-// ---------- Configuration Form (with extra checks) ----------
-function CreateBotForm({ botType, onCreated, onCancel }) {
-  // Guard: ensure meta exists
-  const meta = BOT_META[botType];
-  if (!meta) {
-    return <div className="error-text">❌ Unknown bot type: {botType}</div>;
-  }
+// ---------- Configuration Form (now receives `meta` as a prop) ----------
+function CreateBotForm({ meta, onCreated, onCancel }) {
+  // Log to debug
+  console.log("CreateBotForm rendered with meta:", meta);
 
   const [amount, setAmount] = useState(100);
+
+  // Guard: if meta is missing, show error
+  if (!meta || typeof meta !== "object") {
+    console.error("Invalid meta prop in CreateBotForm", meta);
+    return <div className="error-text">❌ Missing bot metadata</div>;
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const bot = {
-      id: `${botType}-${Date.now()}`,
-      bot_type: botType,
+      id: `${meta.symbol}-${Date.now()}`,
+      bot_type: meta.symbol, // or use the key
       amount_usdt: Number(amount),
       active: false,
       pnl_usdt: 0,
       wins: 0,
       losses: 0,
     };
-    // Ensure onCreated is a function
     if (typeof onCreated === "function") {
       onCreated(bot);
     } else {
@@ -151,18 +147,20 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
   const [showTrades, setShowTrades] = useState(false);
   const intervalRef = useRef(null);
 
-  // Cleanup interval
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
 
-  // If no bot and we are configuring, show the form
+  // If no bot and we are configuring, show the form with the meta prop
   if (!bot && configuring) {
+    if (!meta) {
+      return <div className="error-text">❌ Bot metadata missing</div>;
+    }
     return (
       <CreateBotForm
-        botType={botType}
+        meta={meta}   // pass directly
         onCreated={(newBot) => {
           if (typeof onCreated === "function") {
             onCreated(newBot);
@@ -174,7 +172,6 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
     );
   }
 
-  // Guard if meta is missing (should not happen)
   if (!meta) {
     return <div className="error-text">❌ Bot metadata missing for {botType}</div>;
   }
