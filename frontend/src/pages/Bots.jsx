@@ -135,17 +135,18 @@ function SafeConfigForm({ meta, onSave, onCancel }) {
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="form-group" style={{ marginTop: 12 }}>
-            <label className="bot-stat-label">Buy amount (USDT)</label>
+          <div className="field" style={{ marginTop: 12 }}>
+            <label>Buy amount (USDT)</label>
             <input
               type="number"
               min="50"
-              className="input"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               autoFocus
             />
-            <p className="bot-min-balance-note">Min amount: $50</p>
+            <p className="bot-min-balance-note" style={{ textAlign: "left", marginTop: 6 }}>
+              Min amount: $50
+            </p>
           </div>
 
           <div className="bot-card-buttons" style={{ marginTop: 16 }}>
@@ -179,7 +180,6 @@ function SafeConfigForm({ meta, onSave, onCancel }) {
     );
   }
 }
-
 // ---------- Bot Card ----------
 function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
   const meta = BOT_META[botType];
