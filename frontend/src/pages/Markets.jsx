@@ -1,4 +1,5 @@
 import { useState, useMemo, memo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTicker } from "../tickerData";
 
 // ---------- Coin colors (only coins present in useTicker's PAIRS) ----------
@@ -90,18 +91,21 @@ const COIN_COLORS = {
   JTO: "#9945FF",
   JUP: "#7AC231",
   WIF: "#B08850",
-  BOME: "#FF4B00",
-  NOT: "#56A8FF",
-  IO: "#00D4FF",
   ZK: "#1B53FF",
-  LISTA: "#F0B90B",
   EIGEN: "#5A67D8",
-  HMSTR: "#FF8C00",
-  CATI: "#FFD700",
-  DOGS: "#8B4513",
-  MAJOR: "#4169E1",
-  NEIRO: "#FF69B4",
 };
+
+// Coins with no reliable real-logo source — excluded from Markets entirely
+const EXCLUDED_COINS = new Set([
+  "NEIRO",
+  "BOME",
+  "IO",
+  "LISTA",
+  "HMSTR",
+  "CATI",
+  "DOGS",
+  "MAJOR",
+]);
 
 const EXTRA_DATA = {
   BTC: { vol: "$42.50B", mcap: "$1920.00B" },
@@ -176,6 +180,7 @@ const CoinIcon = memo(function CoinIcon({ base, size = 36 }) {
 
 // ---------- Main Component ----------
 export default function Markets() {
+  const navigate = useNavigate();
   const rawPairs = useTicker(); // from your mock data file
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -184,15 +189,17 @@ export default function Markets() {
   const [sortDir, setSortDir] = useState("asc");
 
   const pairs = useMemo(() => {
-    return rawPairs.map((p) => {
-      const base = p.symbol.split("/")[0];
-      return {
-        symbol: p.symbol,
-        base,
-        price: p.price,
-        change: p.change,
-      };
-    });
+    return rawPairs
+      .map((p) => {
+        const base = p.symbol.split("/")[0];
+        return {
+          symbol: p.symbol,
+          base,
+          price: p.price,
+          change: p.change,
+        };
+      })
+      .filter((p) => !EXCLUDED_COINS.has(p.base));
   }, [rawPairs]);
 
   const topGainers = useMemo(
@@ -367,7 +374,9 @@ export default function Markets() {
                     <td className="td-vol">{extra.vol}</td>
                     <td className="td-mcap">{extra.mcap}</td>
                     <td>
-                      <button className="trade-btn">Trade</button>
+                      <button className="trade-btn" onClick={() => navigate("/bots")}>
+                        Trade
+                      </button>
                     </td>
                   </tr>
                 );
