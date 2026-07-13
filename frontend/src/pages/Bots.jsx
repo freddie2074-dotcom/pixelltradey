@@ -9,6 +9,7 @@ const BOT_META = {
     cadence: "Weekly • DCA",
     description: "Dollar-cost averaging into Bitcoin on a weekly basis.",
     risk: "Low",
+    basePrice: 65000,
   },
   eth_dca_pro: {
     label: "ETH DCA Pro",
@@ -17,6 +18,7 @@ const BOT_META = {
     cadence: "Daily • DCA",
     description: "Dynamic DCA based on RSI and volume indicators.",
     risk: "Medium",
+    basePrice: 3400,
   },
 };
 
@@ -28,11 +30,16 @@ const RISK_CLASS = {
 
 // Minimum balance required before a bot can be configured
 const MIN_CONFIGURE_BALANCE = 5;
+const MAX_TRADES_SHOWN = 20;
 
 function fmtUsd(n) {
   const v = Number(n) || 0;
   const sign = v > 0 ? "+" : v < 0 ? "-" : "+";
   return `${sign}$${Math.abs(v).toFixed(2)}`;
+}
+
+function fmtTime(ts) {
+  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
 // ---------- Config form: just the buy amount ----------
@@ -49,6 +56,7 @@ function CreateBotForm({ botType, meta, onCreate, onCancel, busy }) {
       pnl_usdt: 0,
       wins: 0,
       losses: 0,
+      trades: [],
     };
     onCreate(bot);
   };
@@ -117,15 +125,18 @@ function BotCard({ botType, bot, balance, userId, onCreated, onUpdated }) {
   const executeTrade = async () => {
     if (!bot || !isActive || !userId) return;
     try {
-      // Win rate 57%–64%
-      const winRate = 0.57 + Math.random() * 0.07;
+      // Win rate 60%–67%
+      const winRate = 0.6 + Math.random() * 0.07;
       const isWin = Math.random() < winRate;
 
-      // P&L direction now matches win/loss instead of being rolled independently
+      // P&L direction matches win/loss outcome
       const pnlPercent = isWin
         ? 0.005 + Math.random() * 0.025 // +0.5% to +3%
         : -(0.005 + Math.random() * 0.025); // -0.5% to -3%
       const tradePnl = bot.amount_usdt * pnlPercent;
+
+      // Simulated fill price around the asset's base price
+      const price = meta.basePrice * (1 + (Math.random() * 0.02 - 0.01));
 
       const { data: newBalance, error } = await supabase.rpc(
         "increment_balance",
@@ -133,11 +144,20 @@ function BotCard({ botType, bot, balance, userId, onCreated, onUpdated }) {
       );
       if (error) throw error;
 
+      const newTrade = {
+        id: `${bot.id}-${Date.now()}`,
+        when: Date.now(),
+        reason: isWin ? "Win" : "Loss",
+        usdt: tradePnl,
+        price,
+      };
+
       const updatedBot = {
         ...bot,
         pnl_usdt: bot.pnl_usdt + tradePnl,
         wins: isWin ? bot.wins + 1 : bot.wins,
         losses: isWin ? bot.losses : bot.losses + 1,
+        trades: [newTrade, ...(bot.trades || [])].slice(0, MAX_TRADES_SHOWN),
       };
       onUpdated(updatedBot, null, newBalance);
     } catch (err) {
@@ -196,14 +216,14 @@ function BotCard({ botType, bot, balance, userId, onCreated, onUpdated }) {
   const pnl = bot?.pnl_usdt ?? 0;
   const wins = bot?.wins ?? 0;
   const losses = bot?.losses ?? 0;
+  const trades = bot?.trades ?? [];
 
   const toggleActive = () => {
     onUpdated({ ...bot, active: !bot.active });
   };
 
-  const remove = async () => {
-    if (!confirm(`Delete ${meta.label}? This returns your allocated funds.`))
-      return;
+  const cancelOrRemove = async (confirmMsg) => {
+    if (!confirm(confirmMsg)) return;
     try {
       // Return the original allocated principal to available balance.
       // Realized trade P&L was already applied to balance as trades happened.
@@ -251,7 +271,8 @@ function BotCard({ botType, bot, balance, userId, onCreated, onUpdated }) {
         </div>
       </div>
 
-      {!isActive ? (
+      {!bot ? (
+        // Never configured yet
         <>
           <div className="bot-card-buttons">
             <button
@@ -265,8 +286,7 @@ function BotCard({ botType, bot, balance, userId, onCreated, onUpdated }) {
             <button
               className="btn btn-outline"
               style={{ flex: 1, justifyContent: "center" }}
-              disabled={!bot}
-              onClick={toggleActive}
+              disabled
             >
               ▶ Start Bot
             </button>
@@ -278,14 +298,35 @@ function BotCard({ botType, bot, balance, userId, onCreated, onUpdated }) {
             </p>
           )}
         </>
+      ) : !isActive ? (
+        // Configured, saved, but not started yet
+        <div className="bot-card-buttons">
+          <button
+            className="btn btn-primary"
+            style={{ flex: 1, justifyContent: "center" }}
+            onClick={toggleActive}
+          >
+            ▶ Start Bot
+          </button>
+          <button
+            className="btn btn-outline"
+            style={{ flex: 1, justifyContent: "center" }}
+            onClick={() =>
+              cancelOrRemove(`Cancel ${meta.label} configuration? Your allocated funds will be returned.`)
+            }
+          >
+            Cancel
+          </button>
+        </div>
       ) : (
+        // Running
         <div className="bot-card-buttons">
           <button
             className="btn btn-outline"
             style={{ flex: 1, justifyContent: "center" }}
             onClick={toggleActive}
           >
-            Pause
+            ■ Stop
           </button>
           <button
             className="btn btn-ghost"
@@ -297,7 +338,9 @@ function BotCard({ botType, bot, balance, userId, onCreated, onUpdated }) {
           <button
             className="btn btn-ghost"
             style={{ color: "var(--loss)" }}
-            onClick={remove}
+            onClick={() =>
+              cancelOrRemove(`Delete ${meta.label}? This stops the bot and returns your allocated funds.`)
+            }
           >
             Delete
           </button>
@@ -315,11 +358,26 @@ function BotCard({ botType, bot, balance, userId, onCreated, onUpdated }) {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td colSpan={4} style={{ color: "var(--text-muted)" }}>
-                Trade history is simulated – not stored.
-              </td>
-            </tr>
+            {trades.length === 0 ? (
+              <tr>
+                <td colSpan={4} style={{ color: "var(--text-muted)" }}>
+                  No trades yet.
+                </td>
+              </tr>
+            ) : (
+              trades.map((t) => (
+                <tr key={t.id}>
+                  <td>{fmtTime(t.when)}</td>
+                  <td className={t.reason === "Win" ? "up" : "down"}>
+                    {t.reason}
+                  </td>
+                  <td className={t.usdt >= 0 ? "up" : "down"}>
+                    {fmtUsd(t.usdt)}
+                  </td>
+                  <td>${t.price.toFixed(2)}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       )}
