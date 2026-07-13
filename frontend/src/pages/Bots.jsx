@@ -22,6 +22,7 @@ const BOT_META = {
 
 const RISK_CLASS = { Low: "risk-low", Medium: "risk-medium", High: "risk-high" };
 const MIN_CONFIGURE_BALANCE = 5;
+const RECENT_TRADES_SHOWN = 5;
 
 function fmtUsd(n) {
   const v = Number(n) || 0;
@@ -29,7 +30,6 @@ function fmtUsd(n) {
   return `${sign}$${Math.abs(v).toFixed(2)}`;
 }
 
-// Matches the "$-0.66" / "+$1.73" style used in the activity log
 function fmtTradeUsd(v) {
   return v >= 0 ? `+$${v.toFixed(2)}` : `$-${Math.abs(v).toFixed(2)}`;
 }
@@ -95,32 +95,34 @@ function CreateBotForm({ meta, onCreate, onCancel }) {
   );
 }
 
-// ---------- Activity log (matches the dark inline-log look) ----------
+// ---------- Activity log: auto-visible, most recent trades only ----------
 function ActivityLog({ trades }) {
-  if (!trades || trades.length === 0) {
-    return (
-      <div className="activity-log">
-        <p style={{ color: "var(--text-muted)", margin: 0 }}>No trades yet.</p>
-      </div>
-    );
-  }
+  const recent = (trades || []).slice(0, RECENT_TRADES_SHOWN);
+
   return (
     <div className="activity-log">
-      {trades.map((t) => (
-        <div className="activity-log-row" key={t.id}>
-          <span className="activity-log-time">{fmtTime(t.when)}</span>
-          <span className={`activity-log-arrow ${t.isWin ? "up" : "down"}`}>
-            {t.isWin ? "↑" : "↓"}
-          </span>
-          <span className="activity-log-label">Trade</span>
-          <span className={`activity-log-amount ${t.isWin ? "up" : "down"}`}>
-            {fmtTradeUsd(t.usdt)}
-          </span>
-          <span className={`activity-log-percent ${t.isWin ? "up" : "down"}`}>
-            ({fmtPercent(t.percent)})
-          </span>
-        </div>
-      ))}
+      <div className="activity-log-title">Activity Log</div>
+      {recent.length === 0 ? (
+        <p style={{ color: "var(--text-muted)", margin: 0, fontSize: 13 }}>
+          No trades yet — waiting for the bot to run.
+        </p>
+      ) : (
+        recent.map((t) => (
+          <div className="activity-log-row" key={t.id}>
+            <span className="activity-log-time">{fmtTime(t.when)}</span>
+            <span className={`activity-log-arrow ${t.isWin ? "up" : "down"}`}>
+              {t.isWin ? "↑" : "↓"}
+            </span>
+            <span className="activity-log-label">Trade</span>
+            <span className={`activity-log-amount ${t.isWin ? "up" : "down"}`}>
+              {fmtTradeUsd(t.usdt)}
+            </span>
+            <span className={`activity-log-percent ${t.isWin ? "up" : "down"}`}>
+              ({fmtPercent(t.percent)})
+            </span>
+          </div>
+        ))
+      )}
     </div>
   );
 }
@@ -129,7 +131,6 @@ function ActivityLog({ trades }) {
 function BotCard({ botType, bot, balance, error, onCreated, onStart, onStop, onRemove }) {
   const meta = BOT_META[botType];
   const [configuring, setConfiguring] = useState(false);
-  const [showTrades, setShowTrades] = useState(false);
 
   if (!bot && configuring) {
     return (
@@ -238,13 +239,6 @@ function BotCard({ botType, bot, balance, error, onCreated, onStart, onStop, onR
           </button>
           <button
             className="btn btn-ghost"
-            style={{ flex: 1, justifyContent: "center" }}
-            onClick={() => setShowTrades((s) => !s)}
-          >
-            View trades
-          </button>
-          <button
-            className="btn btn-ghost"
             style={{ color: "var(--loss)" }}
             onClick={() => onRemove(botType)}
           >
@@ -253,7 +247,8 @@ function BotCard({ botType, bot, balance, error, onCreated, onStart, onStop, onR
         </div>
       )}
 
-      {showTrades && <ActivityLog trades={trades} />}
+      {/* Activity log now always shows automatically once a bot exists */}
+      {bot && <ActivityLog trades={trades} />}
     </div>
   );
 }
