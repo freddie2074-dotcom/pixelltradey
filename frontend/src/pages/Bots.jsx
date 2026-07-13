@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 
-// ---------- Error Boundary (shows a fallback UI) ----------
+// ---------- Error Boundary (kept for global safety) ----------
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -65,35 +65,40 @@ function fmtUsd(n) {
   return `${sign}$${Math.abs(v).toFixed(2)}`;
 }
 
-// ---------- Safe configuration form (no CSS classes, only inline styles) ----------
+// ---------- ULTRA‑SAFE CONFIG FORM (no CSS classes, all inline) ----------
 function SafeConfigForm({ meta, onSave, onCancel }) {
   console.log("SafeConfigForm received meta:", meta);
   const [amount, setAmount] = useState(100);
 
+  // If meta is invalid, show a simple message
+  if (!meta || typeof meta !== "object") {
+    return (
+      <div style={{ border: "1px solid red", padding: 10, color: "red" }}>
+        ❌ Missing metadata
+      </div>
+    );
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (typeof onSave === "function") {
-      const bot = {
-        id: `${meta.symbol}-${Date.now()}`,
-        bot_type: meta.symbol,
-        amount_usdt: Number(amount),
-        active: false,
-        pnl_usdt: 0,
-        wins: 0,
-        losses: 0,
-      };
-      onSave(bot);
-    } else {
-      console.error("onSave is not a function");
-    }
+    const bot = {
+      id: `${meta.symbol}-${Date.now()}`,
+      bot_type: meta.symbol,
+      amount_usdt: Number(amount),
+      active: false,
+      pnl_usdt: 0,
+      wins: 0,
+      losses: 0,
+    };
+    if (typeof onSave === "function") onSave(bot);
+    else console.error("onSave is not a function");
   };
 
   return (
-    <div style={{ border: "1px solid #ccc", padding: 20, margin: "10px 0" }}>
+    <div style={{ border: "1px solid #ccc", padding: 16, margin: "10px 0" }}>
       <h3>{meta.icon} {meta.label}</h3>
-      <div>Symbol: {meta.symbol}</div>
       <form onSubmit={handleSubmit}>
-        <div style={{ marginTop: 10 }}>
+        <div style={{ marginTop: 8 }}>
           <label>Buy amount (USDT): </label>
           <input
             type="number"
@@ -107,16 +112,15 @@ function SafeConfigForm({ meta, onSave, onCancel }) {
           <button type="button" onClick={onCancel} style={{ marginRight: 10 }}>
             Cancel
           </button>
-          <button type="submit">Save Configuration</button>
+          <button type="submit">Save</button>
         </div>
       </form>
     </div>
   );
 }
 
-// ---------- Bot Card (with error catching) ----------
+// ---------- Bot Card (with full try/catch around render) ----------
 function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
-  console.log("BotCard rendering with botType:", botType, "bot:", bot);
   const meta = BOT_META[botType];
   const [configuring, setConfiguring] = useState(false);
   const [showTrades, setShowTrades] = useState(false);
@@ -129,12 +133,12 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
     };
   }, []);
 
-  // ***** Top‑level try/catch to catch any error during render *****
+  // ----- The entire render is inside try/catch -----
   try {
-    // If we don't have a bot and we are configuring, show the safe form
+    // If we are configuring and no bot exists, show the safe form
     if (!bot && configuring) {
       if (!meta) {
-        return <div style={{ color: "red" }}>Metadata missing for {botType}</div>;
+        return <div style={{ color: "red" }}>❌ Meta missing</div>;
       }
       return (
         <SafeConfigForm
@@ -148,8 +152,9 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
       );
     }
 
+    // If meta is missing, show error
     if (!meta) {
-      return <div style={{ color: "red" }}>Metadata missing for {botType}</div>;
+      return <div style={{ color: "red" }}>❌ Meta missing for {botType}</div>;
     }
 
     const isActive = bot?.active || false;
@@ -319,10 +324,11 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
       </div>
     );
   } catch (err) {
-    console.error("BotCard caught an error:", err);
+    console.error("BotCard render error:", err);
+    // Return a fallback card with the error message
     return (
-      <div style={{ border: "1px solid red", padding: 10, margin: 10 }}>
-        <h4>Error in bot card</h4>
+      <div style={{ border: "1px solid red", padding: 16, margin: 10 }}>
+        <h4>⚠️ Error rendering bot</h4>
         <p>{err.message}</p>
         <button onClick={() => setConfiguring(false)}>Close</button>
       </div>
@@ -330,7 +336,7 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
   }
 }
 
-// ---------- BotsContent (parent component) ----------
+// ---------- BotsContent (parent) ----------
 function BotsContent() {
   const [bots, setBots] = useState([]);
   const [balance, setBalance] = useState(0);
