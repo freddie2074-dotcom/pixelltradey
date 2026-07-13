@@ -102,7 +102,6 @@ function fmtUsd(n) {
 
 // ---------- SUPER-SAFE CONFIG FORM (catches all errors) ----------
 function SafeConfigForm({ meta, onSave, onCancel }) {
-  console.log("SafeConfigForm received meta:", meta);
   const [amount, setAmount] = useState(100);
 
   // If meta is invalid, show a plain message
@@ -128,7 +127,6 @@ function SafeConfigForm({ meta, onSave, onCancel }) {
     }
   };
 
-  // Wrap the whole JSX in try/catch to prevent #300
   try {
     return (
       <div style={{ border: "1px solid #ccc", padding: 16, margin: "10px 0" }}>
@@ -167,23 +165,69 @@ function SafeConfigForm({ meta, onSave, onCancel }) {
 
 // ---------- Bot Card ----------
 function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
-  console.log(`BotCard render for ${botType} with bot:`, bot);
   const meta = BOT_META[botType];
+
+  // --- ALL HOOKS FIRST, unconditionally, in a fixed order ---
   const [configuring, setConfiguring] = useState(false);
   const [showTrades, setShowTrades] = useState(false);
   const intervalRef = useRef(null);
+  const isActive = bot?.active || false;
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
 
-  // ----- Early return for configuration (safe) -----
-  if (!bot && configuring) {
-    if (!meta) {
-      return <div style={{ color: "red" }}>❌ Meta missing</div>;
+  // Trade simulation
+  const executeTrade = async () => {
+    if (!bot || !isActive) return;
+    try {
+      const winRate = 0.57 + Math.random() * 0.07;
+      const isWin = Math.random() < winRate;
+      const pnlPercent = (Math.random() * 10 - 5) / 100;
+      const tradePnl = bot.amount_usdt * pnlPercent;
+
+      const updatedBot = {
+        ...bot,
+        pnl_usdt: bot.pnl_usdt + tradePnl,
+        wins: isWin ? bot.wins + 1 : bot.wins,
+        losses: isWin ? bot.losses : bot.losses + 1,
+      };
+
+      const newBalance = Number(balance) + tradePnl;
+      const { error } = await supabase
+        .from("profiles")
+        .update({ balance: newBalance })
+        .eq("id", userId);
+      if (error) throw error;
+      if (typeof onUpdated === "function") onUpdated(updatedBot, null, newBalance);
+    } catch (err) {
+      console.error("Trade execution failed:", err);
+      if (typeof onUpdated === "function") onUpdated(bot, null, balance);
     }
+  };
+
+  useEffect(() => {
+    if (isActive && bot) {
+      intervalRef.current = setInterval(executeTrade, 10000);
+    } else {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, bot]);
+
+  // --- NOW it's safe to branch on what to render ---
+
+  if (!meta) {
+    return <div style={{ color: "red" }}>❌ Meta missing for {botType}</div>;
+  }
+
+  if (!bot && configuring) {
     return (
       <SafeConfigForm
         meta={meta}
@@ -196,13 +240,7 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
     );
   }
 
-  if (!meta) {
-    return <div style={{ color: "red" }}>❌ Meta missing for {botType}</div>;
-  }
-
-  // ----- Main render (with try/catch) -----
   try {
-    const isActive = bot?.active || false;
     const badgeText = !bot ? "Not Configured" : isActive ? "active" : "Not Started";
     const badgeClass = !bot ? "off" : isActive ? "on" : "off";
     const meetsMinBalance = Number(balance) >= MIN_CONFIGURE_BALANCE;
@@ -210,46 +248,6 @@ function BotCard({ botType, bot, balance, onCreated, onUpdated, userId }) {
     const pnl = bot?.pnl_usdt ?? 0;
     const wins = bot?.wins ?? 0;
     const losses = bot?.losses ?? 0;
-
-    // ---------- Trade Simulation ----------
-    const executeTrade = async () => {
-      if (!bot || !isActive) return;
-      try {
-        const winRate = 0.57 + Math.random() * 0.07;
-        const isWin = Math.random() < winRate;
-        const pnlPercent = (Math.random() * 10 - 5) / 100;
-        const tradePnl = bot.amount_usdt * pnlPercent;
-
-        const updatedBot = {
-          ...bot,
-          pnl_usdt: bot.pnl_usdt + tradePnl,
-          wins: isWin ? bot.wins + 1 : bot.wins,
-          losses: isWin ? bot.losses : bot.losses + 1,
-        };
-
-        const newBalance = Number(balance) + tradePnl;
-        const { error } = await supabase
-          .from("profiles")
-          .update({ balance: newBalance })
-          .eq("id", userId);
-        if (error) throw error;
-        if (typeof onUpdated === "function") onUpdated(updatedBot, null, newBalance);
-      } catch (err) {
-        console.error("Trade execution failed:", err);
-        if (typeof onUpdated === "function") onUpdated(bot, null, balance);
-      }
-    };
-
-    useEffect(() => {
-      if (isActive && bot) {
-        intervalRef.current = setInterval(executeTrade, 10000);
-      } else {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-      }
-      return () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-      };
-    }, [isActive, bot]);
 
     const toggleActive = () => {
       if (bot && typeof onUpdated === "function") {
