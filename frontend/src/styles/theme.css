@@ -129,7 +129,9 @@ h3 {
     padding: 18px 0;
   }
   .navbar-landing .container {
-    padding: 0 16px;
+  max-width: none;
+  padding: 0 16px;
+}
   }
   .navbar-get-started {
     padding: 8px 16px;
