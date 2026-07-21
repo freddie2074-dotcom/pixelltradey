@@ -77,7 +77,13 @@ h3 {
 }
 .navbar-landing .container {
   max-width: none;
-  padding: 0 32px;
+  padding: 0 8px;
+}
+
+@media (max-width: 480px) {
+  .navbar-landing .container {
+    padding: 0 8px;
+  }
 }
 .navbar-landing-inner {
   display: flex;
