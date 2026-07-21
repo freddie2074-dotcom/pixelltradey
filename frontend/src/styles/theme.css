@@ -62,9 +62,22 @@ h3 {
 }
 
 /* ---------- Navbar ---------- */
+.navbar .logo {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+}
 .navbar-landing {
   border-bottom: none;
   box-shadow: none;
+  padding: 28px 0;
+}
+.navbar-landing .container {
+  max-width: none;
+  padding: 0 32px;
 }
 .navbar-landing-inner {
   display: flex;
@@ -89,6 +102,7 @@ h3 {
   font-weight: 800;
   color: var(--accent);
   white-space: nowrap;
+  line-height: 1;
 }
 .navbar-signin-link {
   font-size: 14px;
@@ -111,6 +125,12 @@ h3 {
 }
 
 @media (max-width: 480px) {
+  .navbar-landing {
+    padding: 18px 0;
+  }
+  .navbar-landing .container {
+    padding: 0 16px;
+  }
   .navbar-get-started {
     padding: 8px 16px;
     font-size: 13px;
@@ -119,7 +139,7 @@ h3 {
     height: 26px;
   }
   .navbar-logo-text {
-    font-size: 19px;
+    font-size: 21px;
   }
   .navbar .logo {
     gap: 6px;
@@ -145,7 +165,7 @@ h3 {
     height: 22px;
   }
   .navbar-logo-text {
-    font-size: 16px;
+    font-size: 18px;
   }
   .navbar-signin-link {
     padding: 6px 8px;
@@ -156,22 +176,7 @@ h3 {
     font-size: 12px;
   }
 }
-.navbar-landing {
-  padding: 28px 0;
-}
-.navbar-landing .container {
-  max-width: none;
-  padding: 0 32px;
-}
 
-@media (max-width: 480px) {
-  .navbar-landing {
-    padding: 18px 0;
-  }
-  .navbar-landing .container {
-    padding: 0 16px;
-  }
-}
 /* ---------- Buttons ---------- */
 .btn {
     display: inline-flex;
@@ -2258,11 +2263,17 @@ h3 {
     font-weight: 600;
 }
 .chart-info-ohlc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
     font-size: 12px;
     color: var(--text-muted);
 }
 .chart-info-ohlc .down {
     color: var(--loss);
+}
+.ohlc-item b {
+    font-weight: 600;
 }
 .chart-info-vol {
     font-size: 11px;
@@ -2506,22 +2517,6 @@ h3 {
         opacity: 0.3;
     }
 }
-.chart-info-ohlc {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-.ohlc-item b {
-    font-weight: 600;
-}
-.chart-info-ohlc {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-.ohlc-item b {
-    font-weight: 600;
-}
 
 .live-candle rect {
     animation: liveCandlePulse 1.2s ease-in-out infinite;
@@ -2618,8 +2613,12 @@ h3 {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: var(--panel-alt);
+    background: var(--accent);
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
 }
 .chat-bubble {
     max-width: 75%;
@@ -2744,19 +2743,6 @@ h3 {
     width: 20px;
     text-align: center;
     flex-shrink: 0;
-}
-
-/* Bot avatar now shows an icon instead of being blank */
-.chat-avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: var(--accent);
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
 }
 .chat-dropdown-text {
     display: flex;
@@ -3169,57 +3155,7 @@ h3 {
         width: auto;
     }
 }
-.navbar-landing {
-  border-bottom: none;
-  box-shadow: none;
-}
-.navbar-landing-inner {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  align-items: center;
-}
-.navbar-landing-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-left: auto;
-}
-.navbar-logo-img {
-  height: 32px;
-  width: auto;
-}
-.navbar-signin-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  color: inherit;
-  flex-shrink: 0;
-}
-.navbar-get-started {
-  padding: 8px 28px;
-  border-radius: 6px;
-  line-height: 1;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
 
-@media (max-width: 480px) {
-  .navbar-get-started {
-    padding: 8px 16px;
-    font-size: 13px;
-  }
-  .navbar-logo-img {
-    height: 26px;
-  }
-  .navbar .logo {
-    font-size: 16px;
-    gap: 6px;
-  }
-}
 /* ---------- Spot page: chart-only full-width layout ---------- */
 .spot-page-full {
   display: flex;
@@ -3339,6 +3275,7 @@ h3 {
   color: var(--text);
   font-weight: 600;
 }
+
 /* ---------- Auth: split welcome layout ---------- */
 .auth-split {
   min-height: 100vh;
@@ -3383,12 +3320,6 @@ h3 {
   max-width: none;
   object-fit: cover;
   opacity: 0.9;
-}
-
-/* Fade placeholders across all auth inputs */
-.auth-field-line input::placeholder {
-  color: var(--text-muted);
-  opacity: 0.45;
 }
 
 .auth-form-side {
@@ -3438,6 +3369,7 @@ h3 {
 }
 .auth-field-line input::placeholder {
   color: var(--text-muted);
+  opacity: 0.45;
 }
 .auth-field-line input:focus {
   outline: none;
