@@ -3302,15 +3302,23 @@ h3 {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
   background:
     radial-gradient(circle at 30% 30%, var(--accent-soft), transparent 60%),
     var(--panel);
 }
 .auth-visual img {
-  width: 65%;
-  max-width: 420px;
-  opacity: 0.55;
-  filter: drop-shadow(0 0 60px var(--accent-soft));
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  opacity: 0.9;
+}
+
+/* Fade placeholders across all auth inputs */
+.auth-field-line input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.45;
 }
 
 .auth-form-side {
