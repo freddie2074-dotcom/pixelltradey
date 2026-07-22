@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import heroTradeImage from "../tradex.png";
+import heroTradeImage from "../tradex.png.webp";
 import phoneImage from "../phone.jpg";
 
 const FEATURE_CARDS = [
