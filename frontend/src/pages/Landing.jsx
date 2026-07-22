@@ -32,7 +32,7 @@ export default function Landing() {
         <section className="hero" id="platform">
           <div className="hero-content">
             <h1 className="hero-headline-lg">
-              Accumulate crypto on autopilot without handing over your funds.
+              Accumulate crypto on automated trading, be a smart trader.
             </h1>
             <p className="lede">
               PixellTrade runs disciplined, rule-based buying strategies
