@@ -31,6 +31,7 @@ body,
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-body);
+    overflow-x: hidden;
 }
 
 a {
@@ -80,7 +81,6 @@ h3 {
   width: 100%;
   z-index: 1000;
   background: var(--bg);
-
 }
 .navbar-landing .container {
   max-width: none;
@@ -245,7 +245,7 @@ h3 {
     display: grid;
     grid-template-columns: 1.1fr 0.9fr;
     gap: 40px;
-    padding: 40px 0 60px;
+    padding: 140px 0 60px;
     align-items: center;
 }
 .hero .eyebrow {
@@ -309,7 +309,7 @@ h3 {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: visible;
+    overflow: hidden;
 }
 
 .hero-photo {
@@ -392,7 +392,7 @@ h3 {
 
     .hero {
         grid-template-columns: 1fr;
-        padding: 20px 0 20px;
+        padding: 110px 0 20px;
     }
 
     /* Smaller, better-proportioned heading so it doesn't wrap into
