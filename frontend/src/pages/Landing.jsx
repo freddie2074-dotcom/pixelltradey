@@ -31,13 +31,7 @@ export default function Landing() {
         <Navbar />
         <section className="hero" id="platform">
           <div className="hero-content">
-            <h1
-              className="hero-headline-lg"
-              style={{
-                fontSize: "clamp(1.6rem, 6vw, 3.5rem)",
-                lineHeight: 1.2,
-              }}
-            >
+            <h1 className="hero-headline-lg">
               Accumulate crypto on autopilot without handing over your funds.
             </h1>
             <p className="lede">
@@ -78,62 +72,16 @@ export default function Landing() {
             we actually stand behind — each with dip and RSI-aware buying
             layered on top of a fixed schedule.
           </p>
-          <div
-            className="feature-grid"
-            style={{
-              marginTop: 40,
-              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            }}
-          >
+          <div className="strategy-grid">
             {FEATURE_CARDS.map((c) => (
-              <div
-                key={c.title}
-                className="feature-card"
-                style={{ padding: 0, overflow: "hidden" }}
-              >
-                <div
-                  style={{
-                    position: "relative",
-                    height: 200,
-                    overflow: "hidden",
-                  }}
-                >
-                  <img
-                    src={c.img}
-                    alt={c.title}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      display: "block",
-                      filter: "brightness(0.55)",
-                      transition: "transform 0.4s ease",
-                    }}
-                  />
-                  <div
-                    className="icon"
-                    style={{
-                      position: "absolute",
-                      bottom: 16,
-                      left: 16,
-                      margin: 0,
-                    }}
-                  >
-                    {c.icon}
-                  </div>
+              <div key={c.title} className="strategy-card">
+                <div className="strategy-card-image-wrap">
+                  <img src={c.img} alt={c.title} />
+                  <div className="icon strategy-card-badge">{c.icon}</div>
                 </div>
-                <div style={{ padding: 24 }}>
-                  <h3 style={{ fontSize: 17, marginBottom: 8 }}>{c.title}</h3>
-                  <p
-                    style={{
-                      color: "var(--text-muted)",
-                      fontSize: 14,
-                      lineHeight: 1.55,
-                      margin: 0,
-                    }}
-                  >
-                    {c.desc}
-                  </p>
+                <div className="strategy-card-body">
+                  <h3>{c.title}</h3>
+                  <p>{c.desc}</p>
                 </div>
               </div>
             ))}
