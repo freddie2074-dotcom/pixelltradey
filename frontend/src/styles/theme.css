@@ -310,6 +310,7 @@ h3 {
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    height: 480px;
 }
 
 .hero-photo {
