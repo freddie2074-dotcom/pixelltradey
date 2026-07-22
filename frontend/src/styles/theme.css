@@ -56,9 +56,9 @@ h3 {
 }
 
 .container {
-    max-width: 1180px;
+    max-width: 1400px;
     margin: 0 auto;
-    padding: 0 24px;
+    padding: 0 32px;
 }
 
 /* ---------- Navbar ---------- */
@@ -108,12 +108,14 @@ h3 {
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
-  padding: 8px 14px;
-  border-radius: var(--radius-sm);
+  padding: 8px 18px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
   white-space: nowrap;
   flex-shrink: 0;
 }
 .navbar-signin-link:hover {
+  border-color: var(--accent);
   color: var(--accent);
 }
 .navbar-get-started {
@@ -126,34 +128,10 @@ h3 {
 
 @media (max-width: 480px) {
   .navbar-landing {
-    padding: 18px 0;
+    padding: 14px 0;
   }
   .navbar-landing .container {
     padding: 0 8px;
-  }
-  .navbar-get-started {
-    padding: 8px 16px;
-    font-size: 13px;
-  }
-  .navbar-logo-img {
-    height: 26px;
-  }
-  .navbar-logo-text {
-    font-size: 21px;
-  }
-  .navbar .logo {
-    gap: 6px;
-  }
-  .navbar-landing-actions {
-    gap: 8px;
-  }
-}
-
-/* Tighter fit for narrow phones (Galaxy S8+ and similar, ~360px wide) */
-@media (max-width: 400px) {
-  .navbar .container {
-    padding-left: 8px;
-    padding-right: 8px;
   }
   .navbar-landing-inner {
     gap: 6px;
@@ -161,19 +139,50 @@ h3 {
   .navbar-landing-actions {
     gap: 6px;
   }
+  .navbar-get-started {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+  .navbar-signin-link {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
   .navbar-logo-img {
     height: 22px;
   }
   .navbar-logo-text {
-    font-size: 18px;
+    font-size: 16px;
+  }
+  .navbar .logo {
+    gap: 4px;
+  }
+}
+
+/* Tighter fit for narrow phones (Galaxy S8+ and similar, ~360px wide) */
+@media (max-width: 400px) {
+  .navbar .container {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  .navbar-landing-inner {
+    gap: 4px;
+  }
+  .navbar-landing-actions {
+    gap: 4px;
+  }
+  .navbar-logo-img {
+    height: 20px;
+  }
+  .navbar-logo-text {
+    font-size: 14px;
   }
   .navbar-signin-link {
     padding: 6px 8px;
-    font-size: 12px;
+    font-size: 11px;
   }
   .navbar-get-started {
-    padding: 7px 12px;
-    font-size: 12px;
+    padding: 6px 10px;
+    font-size: 11px;
   }
 }
 
@@ -229,7 +238,7 @@ h3 {
     display: grid;
     grid-template-columns: 1.1fr 0.9fr;
     gap: 40px;
-    padding: 80px 0 60px;
+    padding: 40px 0 60px;
     align-items: center;
 }
 .hero .eyebrow {
@@ -358,7 +367,7 @@ h3 {
 
     .hero {
         grid-template-columns: 1fr;
-        padding: 40px 0 32px;
+        padding: 24px 0 32px;
     }
 
     .hero-headline-lg {
