@@ -34,6 +34,16 @@ export default function Landing() {
             <h1 className="hero-headline-lg">
               Accumulate crypto on automated trading, be a smart trader.
             </h1>
+
+            {/* Mobile-only hero image — cropped/zoomed to fill the box,
+                sits right under the headline, above the paragraph */}
+            <div className="hero-mobile-image-wrap">
+              <img
+                src={heroTradeImage}
+                alt="PixellTrade trading dashboard preview"
+              />
+            </div>
+
             <p className="lede">
               PixellTrade runs disciplined, rule-based buying strategies
               directly on your own Binance account. We never hold your money you
@@ -60,11 +70,6 @@ export default function Landing() {
 
         {/* ── STRATEGY SECTION ── */}
         <section className="section" id="bots">
-          <img
-            src={heroTradeImage}
-            alt="PixellTrade trading dashboard preview"
-            className="bots-photo-mobile"
-          />
           <div className="kicker">Strategy</div>
           <h2>Two focused strategies. No noise, no guesswork.</h2>
           <p className="section-lede">
