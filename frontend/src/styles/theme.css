@@ -129,8 +129,6 @@ h3 {
 }
 
 @media (max-width: 480px) {
-  /* Shrink the OUTER page container so it doesn't double up with
-     .navbar-landing's own container padding and crush the navbar */
   .container {
     padding: 0 16px;
   }
@@ -340,8 +338,8 @@ h3 {
     max-width: 640px;
 }
 
-/* Mobile: image moves into the hero itself, cropped/zoomed to fill the box
-   (replaces the old empty-space .bots-photo-mobile rule) */
+/* Mobile: image moves into the hero itself, cropped/zoomed to fill the box,
+   no border/frame */
 .hero-mobile-image-wrap {
     display: none;
 }
@@ -353,7 +351,7 @@ h3 {
         height: 300px;
         overflow: hidden;
         border-radius: var(--radius);
-        border: 1px solid var(--border);
+        border: none;
         margin-bottom: 24px;
     }
     .hero-mobile-image-wrap img {
@@ -390,8 +388,11 @@ h3 {
         padding: 20px 0 20px;
     }
 
+    /* Smaller, better-proportioned heading so it doesn't wrap into
+       a tall stack of short lines */
     .hero-headline-lg {
-        font-size: clamp(2rem, 8vw, 2.8rem);
+        font-size: clamp(1.9rem, 7vw, 2.6rem);
+        line-height: 1.15;
         max-width: 100%;
     }
 
@@ -410,6 +411,13 @@ h3 {
 
     .transparency-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-headline-lg {
+        font-size: clamp(1.6rem, 8vw, 2rem);
+        line-height: 1.2;
     }
 }
 
