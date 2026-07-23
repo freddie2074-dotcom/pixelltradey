@@ -258,7 +258,7 @@ export default function Markets() {
   );
 
   return (
-   
+    <div className="markets-page">
       {/* Top Gainers & Losers */}
       <div className="movers-grid">
         {[
