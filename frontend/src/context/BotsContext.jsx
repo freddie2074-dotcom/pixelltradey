@@ -1,10 +1,9 @@
-
 import { createContext, useContext, useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 
 const BotsContext = createContext(null);
 
-const TRADE_INTERVAL_MS = 5000;
+const TRADE_INTERVAL_MS = 2500;
 const MAX_TRADES_SHOWN = 30;
 
 export function BotsProvider({ children }) {
@@ -19,30 +18,68 @@ export function BotsProvider({ children }) {
   const botsRef = useRef(bots); // always-fresh snapshot for interval closures
   botsRef.current = bots;
 
-  // ---- load user + balance once, keep in sync with DB ----
+  const userIdRef = useRef(null); // always-fresh snapshot for the auth listener closure
+
+  const stopAllIntervals = () => {
+    Object.values(intervalsRef.current).forEach(clearInterval);
+    intervalsRef.current = {};
+  };
+
+  const fetchBalanceFor = async (uid) => {
+    setBalanceLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("balance")
+        .eq("id", uid)
+        .single();
+      if (error) throw error;
+      setBalance(Number(data?.balance) || 0);
+      setBalanceError("");
+    } catch (e) {
+      setBalanceError(e.message);
+    } finally {
+      setBalanceLoading(false);
+    }
+  };
+
+  // ---- load user + balance once, and re-sync whenever the logged-in user changes ----
   useEffect(() => {
-    async function loadUserAndBalance() {
+    async function loadInitialUser() {
       setBalanceLoading(true);
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError) throw userError;
         if (!user) throw new Error("No logged-in user found.");
+        userIdRef.current = user.id;
         setUserId(user.id);
-
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("balance")
-          .eq("id", user.id)
-          .single();
-        if (error) throw error;
-        setBalance(Number(data?.balance) || 0);
+        await fetchBalanceFor(user.id);
       } catch (e) {
         setBalanceError(e.message);
-      } finally {
         setBalanceLoading(false);
       }
     }
-    loadUserAndBalance();
+    loadInitialUser();
+
+    // Reset bot state and reload balance whenever the actual logged-in user changes
+    // (covers logout -> different user login -> login without a full page refresh)
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const newUserId = session?.user?.id ?? null;
+      if (newUserId === userIdRef.current) return;
+
+      stopAllIntervals();
+      setBots({});
+      setBotErrors({});
+      userIdRef.current = newUserId;
+      setUserId(newUserId);
+
+      if (newUserId) {
+        fetchBalanceFor(newUserId);
+      } else {
+        setBalance(0);
+        setBalanceLoading(false);
+      }
+    });
 
     const channel = supabase
       .channel("bots-profile-balance-changes")
@@ -50,16 +87,17 @@ export function BotsProvider({ children }) {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "profiles" },
         (payload) => {
-          supabase.auth.getUser().then(({ data: { user } }) => {
-            if (user && payload.new.id === user.id) {
-              setBalance(Number(payload.new.balance) || 0);
-            }
-          });
+          if (userIdRef.current && payload.new.id === userIdRef.current) {
+            setBalance(Number(payload.new.balance) || 0);
+          }
         }
       )
       .subscribe();
 
-    return () => supabase.removeChannel(channel);
+    return () => {
+      authListener?.subscription?.unsubscribe();
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const clearBotError = (botType) => {
@@ -76,15 +114,14 @@ export function BotsProvider({ children }) {
     if (!bot || !bot.active || !userId) return;
 
     try {
-      // Win rate 60%–67%
-      const winRate = 0.6 + Math.random() * 0.07;
+      // Win rate 55%–62%
+      const winRate = 0.55 + Math.random() * 0.07;
       const isWin = Math.random() < winRate;
 
-      // Swing size 5%–20% of allocated amount, matching direction of outcome
-      const pnlPercent = isWin
-        ? 0.05 + Math.random() * 0.15
-        : -(0.05 + Math.random() * 0.15);
-      const tradePnl = bot.amount_usdt * pnlPercent;
+      // Flat swing of $0.75–$1.50 per trade, independent of allocated amount
+      const swing = 0.75 + Math.random() * 0.75;
+      const tradePnl = isWin ? swing : -swing;
+      const pnlPercent = bot.amount_usdt > 0 ? (tradePnl / bot.amount_usdt) * 100 : 0;
 
       const { data: newBalance, error } = await supabase.rpc(
         "increment_balance",
@@ -97,22 +134,21 @@ export function BotsProvider({ children }) {
         when: Date.now(),
         isWin,
         usdt: tradePnl,
-        percent: pnlPercent * 100,
+        percent: pnlPercent,
       };
 
       setBots((prev) => {
         const current = prev[botType];
         if (!current) return prev;
-        return {
-          ...prev,
-          [botType]: {
-            ...current,
-            pnl_usdt: current.pnl_usdt + tradePnl,
-            wins: isWin ? current.wins + 1 : current.wins,
-            losses: isWin ? current.losses : current.losses + 1,
-            trades: [newTrade, ...(current.trades || [])].slice(0, MAX_TRADES_SHOWN),
-          },
+        const updated = {
+          ...current,
+          pnl_usdt: current.pnl_usdt + tradePnl,
+          wins: isWin ? current.wins + 1 : current.wins,
+          losses: isWin ? current.losses : current.losses + 1,
+          trades: [newTrade, ...(current.trades || [])].slice(0, MAX_TRADES_SHOWN),
         };
+        botsRef.current = { ...prev, [botType]: updated };
+        return { ...prev, [botType]: updated };
       });
       setBalance(newBalance);
       clearBotError(botType);
@@ -135,10 +171,7 @@ export function BotsProvider({ children }) {
 
   // clean up all intervals if the provider itself ever unmounts (e.g. logout)
   useEffect(() => {
-    return () => {
-      Object.values(intervalsRef.current).forEach(clearInterval);
-      intervalsRef.current = {};
-    };
+    return () => stopAllIntervals();
   }, []);
 
   // ---- public actions ----
@@ -155,6 +188,7 @@ export function BotsProvider({ children }) {
       trades: [],
     };
     // No balance deduction — allocated amount is not subtracted.
+    botsRef.current = { ...botsRef.current, [botType]: bot };
     setBots((prev) => ({ ...prev, [botType]: bot }));
     clearBotError(botType);
   };
@@ -163,8 +197,13 @@ export function BotsProvider({ children }) {
     setBots((prev) => {
       const bot = prev[botType];
       if (!bot) return prev;
-      return { ...prev, [botType]: { ...bot, active: true } };
+      const updated = { ...bot, active: true };
+      botsRef.current = { ...prev, [botType]: updated }; // sync ref immediately so the trade below sees it as active
+      return { ...prev, [botType]: updated };
     });
+
+    // fire the first trade right away instead of waiting a full interval
+    executeTrade(botType);
     ensureInterval(botType, true);
   };
 
@@ -172,7 +211,9 @@ export function BotsProvider({ children }) {
     setBots((prev) => {
       const bot = prev[botType];
       if (!bot) return prev;
-      return { ...prev, [botType]: { ...bot, active: false } };
+      const updated = { ...bot, active: false };
+      botsRef.current = { ...prev, [botType]: updated };
+      return { ...prev, [botType]: updated };
     });
     ensureInterval(botType, false);
   };
@@ -182,6 +223,7 @@ export function BotsProvider({ children }) {
     setBots((prev) => {
       const next = { ...prev };
       delete next[botType];
+      botsRef.current = next;
       return next;
     });
     clearBotError(botType);
