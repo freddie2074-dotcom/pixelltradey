@@ -2013,6 +2013,22 @@ h3 {
         font-size: 0.85rem;
         padding: 12px 14px;
     }
+
+    .panel.deposit-panel,
+    .panel.withdraw-panel {
+        border: none;
+    }
+
+    .method-selector {
+        border-bottom: none;
+    }
+
+    .wallet-section {
+        margin-left: -24px;
+        margin-right: -24px;
+        width: calc(100% + 48px);
+        border-radius: 0;
+    }
 }
 
 /* ---------- Bots page: hero banner ---------- */
