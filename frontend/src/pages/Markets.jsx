@@ -258,21 +258,12 @@ export default function Markets() {
   );
 
   return (
-    <div className="dash-page">
-      {/* Page Heading */}
-      <div className="markets-header">
-        <h1 className="markets-title">Markets</h1>
-        <p className="markets-subtitle">
-          Live prices across {pairs.length} markets — trade directly from your
-          own Binance account.
-        </p>
-      </div>
-
+   
       {/* Top Gainers & Losers */}
       <div className="movers-grid">
         {[
-          { label: "🔥 Top Gainers", list: topGainers, isGain: true },
-          { label: "⚡ Top Losers", list: topLosers, isGain: false },
+          { label: "Top Gainers", list: topGainers, isGain: true },
+          { label: "Top Losers", list: topLosers, isGain: false },
         ].map(({ label, list, isGain }) => (
           <div key={label} className="movers-card panel">
             <div className="movers-title">{label}</div>
