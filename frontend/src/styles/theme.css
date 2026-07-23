@@ -1745,6 +1745,12 @@ h3 {
     padding: 24px;
 }
 
+.panel.deposit-panel,
+.panel.withdraw-panel,
+.pending-withdrawals-panel {
+    background: var(--bg);
+}
+
 .method-selector {
     display: flex;
     flex-direction: column;
