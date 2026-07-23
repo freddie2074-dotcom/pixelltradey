@@ -422,13 +422,6 @@ export default function Dashboard() {
   // Normal Dashboard
   return (
     <>
-      <div className="page-header">
-        <div>
-          <h1>Dashboard</h1>
-          <p>Track your portfolio and trading activity in one place.</p>
-        </div>
-      </div>
-
       {balanceError && <p className="error-text">{balanceError}</p>}
 
       <div className="panel hero-portfolio">
