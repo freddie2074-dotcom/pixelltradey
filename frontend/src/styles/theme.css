@@ -1740,9 +1740,7 @@ h3 {
 }
 
 .deposit-container {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 24px;
+    width: 100%;
 }
 
 .panel.deposit-panel,
@@ -1980,11 +1978,6 @@ h3 {
 }
 
 @media (max-width: 640px) {
-    .deposit-container {
-        max-width: 100%;
-        padding: 16px;
-    }
-
     .panel.deposit-panel,
     .panel.withdraw-panel {
         border-left: none;
