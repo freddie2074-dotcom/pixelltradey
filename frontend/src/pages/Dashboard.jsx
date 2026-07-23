@@ -1,7 +1,7 @@
 // src/pages/Dashboard.jsx
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useTicker, CRYPTO_DATA } from "../tickerData";
 import { supabase } from "../supabaseClient";
 
@@ -76,6 +76,7 @@ function Sparkline({ up }) {
 export default function Dashboard() {
   const pairs = useTicker();
   const [lastUpdated] = useState(new Date());
+  const location = useLocation();
 
   // Real balance, pulled from Supabase (profiles.balance) — same field the admin panel edits
   const [totalValue, setTotalValue] = useState(0);
@@ -99,6 +100,13 @@ export default function Dashboard() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawAddress, setWithdrawAddress] = useState("");
   const [pendingWithdrawals, setPendingWithdrawals] = useState([]);
+
+  // ---------- Reset to the main dashboard whenever the Dashboard link ----------
+  // ---------- is clicked in the sidebar, even if we're already on /dashboard ----------
+  useEffect(() => {
+    setShowDeposit(false);
+    setShowWithdraw(false);
+  }, [location.key]);
 
   // ---------- Fetch real balance from Supabase ----------
   useEffect(() => {
@@ -223,12 +231,6 @@ export default function Dashboard() {
           <h1>Fund Your Account</h1>
           <p>Choose your preferred deposit method below.</p>
         </div>
-        <button
-          onClick={() => setShowDeposit(false)}
-          className="btn btn-outline"
-        >
-          ← Back to Dashboard
-        </button>
       </div>
 
       <div className="panel deposit-panel">
@@ -298,12 +300,6 @@ export default function Dashboard() {
           <h1>Withdraw Funds</h1>
           <p>Choose your preferred withdrawal method below</p>
         </div>
-        <button
-          onClick={() => setShowWithdraw(false)}
-          className="btn btn-outline"
-        >
-          ← Back to Dashboard
-        </button>
       </div>
 
       {/* Available Balance — now matches Dashboard portfolio value */}
