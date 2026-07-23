@@ -47,6 +47,48 @@ function fmtTime(ts) {
   });
 }
 
+// ---------- Bot picker: choose which bot to configure ----------
+function BotPicker({ bots, onSelect, onClose }) {
+  return (
+    <div className="panel" style={{ marginBottom: 24 }}>
+      <div className="panel-header-row">
+        <h3>Choose a Bot</h3>
+        <button className="btn btn-ghost" onClick={onClose}>
+          Cancel
+        </button>
+      </div>
+      <div className="bot-grid">
+        {Object.entries(BOT_META).map(([botType, meta]) => {
+          const alreadyExists = !!bots[botType];
+          return (
+            <button
+              key={botType}
+              type="button"
+              className="bot-card"
+              style={{
+                textAlign: "left",
+                cursor: alreadyExists ? "not-allowed" : "pointer",
+                opacity: alreadyExists ? 0.5 : 1,
+              }}
+              disabled={alreadyExists}
+              onClick={() => onSelect(botType)}
+            >
+              <div className="bot-head">
+                <h3>
+                  {meta.icon} {meta.label}
+                </h3>
+                {alreadyExists && <span className="status-pill off">already configured</span>}
+              </div>
+              <div className="bot-symbol">{meta.cadence}</div>
+              <p className="bot-card-desc">{meta.description}</p>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ---------- Config form ----------
 function CreateBotForm({ meta, onCreate, onCancel }) {
   const [amount, setAmount] = useState(100);
@@ -109,15 +151,15 @@ function ActivityLog({ trades }) {
       ) : (
         recent.map((t) => (
           <div className="activity-log-row" key={t.id}>
-            <span className="activity-log-time">{fmtTime(t.when)}</span>
+            <span className="activity-log-time mono">{fmtTime(t.when)}</span>
             <span className={`activity-log-arrow ${t.isWin ? "up" : "down"}`}>
               {t.isWin ? "↑" : "↓"}
             </span>
             <span className="activity-log-label">Trade</span>
-            <span className={`activity-log-amount ${t.isWin ? "up" : "down"}`}>
+            <span className={`activity-log-amount mono ${t.isWin ? "up" : "down"}`}>
               {fmtTradeUsd(t.usdt)}
             </span>
-            <span className={`activity-log-percent ${t.isWin ? "up" : "down"}`}>
+            <span className={`activity-log-percent mono ${t.isWin ? "up" : "down"}`}>
               ({fmtPercent(t.percent)})
             </span>
           </div>
@@ -128,9 +170,20 @@ function ActivityLog({ trades }) {
 }
 
 // ---------- Bot Card ----------
-function BotCard({ botType, bot, balance, error, onCreated, onStart, onStop, onRemove }) {
+function BotCard({
+  botType,
+  bot,
+  balance,
+  error,
+  configuring,
+  onConfigureStart,
+  onConfigureCancel,
+  onCreated,
+  onStart,
+  onStop,
+  onRemove,
+}) {
   const meta = BOT_META[botType];
-  const [configuring, setConfiguring] = useState(false);
 
   if (!bot && configuring) {
     return (
@@ -138,9 +191,9 @@ function BotCard({ botType, bot, balance, error, onCreated, onStart, onStop, onR
         meta={meta}
         onCreate={(amount) => {
           onCreated(botType, amount);
-          setConfiguring(false);
+          onConfigureCancel();
         }}
-        onCancel={() => setConfiguring(false)}
+        onCancel={onConfigureCancel}
       />
     );
   }
@@ -172,15 +225,15 @@ function BotCard({ botType, bot, balance, error, onCreated, onStart, onStop, onR
         </div>
         <div className="bot-stat-col">
           <div className="bot-stat-label">P&amp;L</div>
-          <div className={`bot-stat-value ${pnl >= 0 ? "up" : "down"}`}>{fmtUsd(pnl)}</div>
+          <div className={`bot-stat-value mono ${pnl >= 0 ? "up" : "down"}`}>{fmtUsd(pnl)}</div>
         </div>
         <div className="bot-stat-col">
           <div className="bot-stat-label">Wins</div>
-          <div className="bot-stat-value up">{wins}</div>
+          <div className="bot-stat-value mono up">{wins}</div>
         </div>
         <div className="bot-stat-col">
           <div className="bot-stat-label">Losses</div>
-          <div className="bot-stat-value down">{losses}</div>
+          <div className="bot-stat-value mono down">{losses}</div>
         </div>
       </div>
 
@@ -197,7 +250,7 @@ function BotCard({ botType, bot, balance, error, onCreated, onStart, onStop, onR
               className="btn btn-primary"
               style={{ flex: 1, justifyContent: "center" }}
               disabled={!canConfigure}
-              onClick={() => setConfiguring(true)}
+              onClick={onConfigureStart}
             >
               Configure
             </button>
@@ -257,9 +310,17 @@ export default function Bots() {
   const { balance, balanceLoading, balanceError, bots, botErrors, createBot, startBot, stopBot, removeBot } =
     useBots();
 
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [configuringType, setConfiguringType] = useState(null);
+
   const totalBots = Object.keys(BOT_META).length;
   const meetsMinBalance = Number(balance) >= MIN_CONFIGURE_BALANCE;
   const statusLabel = meetsMinBalance ? "Ready" : "Locked";
+
+  const handlePickBot = (botType) => {
+    setConfiguringType(botType);
+    setPickerOpen(false);
+  };
 
   return (
     <>
@@ -269,24 +330,23 @@ export default function Bots() {
           <p>Create and manage algorithmic trading strategies</p>
           <div className="bots-hero-stats">
             <div className="bots-hero-stat">
-              <div className="bots-hero-stat-value">{totalBots}</div>
+              <div className="bots-hero-stat-value mono">{totalBots}</div>
               <div className="bots-hero-stat-label">Total Bots</div>
             </div>
             <div className="bots-hero-stat">
-              <div className="bots-hero-stat-value">
+              <div className="bots-hero-stat-value mono">
                 {balanceLoading ? "…" : `$${Number(balance).toFixed(2)}`}
               </div>
               <div className="bots-hero-stat-label">Available Balance</div>
             </div>
             <div className="bots-hero-stat">
-              <div className={`bots-hero-stat-value ${meetsMinBalance ? "up" : "down"}`}>
+              <div className={`bots-hero-stat-value mono ${meetsMinBalance ? "up" : "down"}`}>
                 {statusLabel}
               </div>
               <div className="bots-hero-stat-label">Bot Status</div>
             </div>
           </div>
         </div>
-        <button className="btn bots-hero-cta">Create New Bot →</button>
       </div>
 
       {balanceError && <p className="error-text">{balanceError}</p>}
@@ -296,8 +356,14 @@ export default function Bots() {
           <h3>Dollar-Cost Averaging Bots</h3>
           <p>Regular purchases of assets regardless of price</p>
         </div>
-        <button className="btn btn-primary">Create DCA Bot</button>
+        <button className="btn btn-primary" onClick={() => setPickerOpen(true)}>
+          Create New Bot
+        </button>
       </div>
+
+      {pickerOpen && (
+        <BotPicker bots={bots} onSelect={handlePickBot} onClose={() => setPickerOpen(false)} />
+      )}
 
       <div className="bot-grid">
         <BotCard
@@ -305,6 +371,9 @@ export default function Bots() {
           bot={bots.btc_accumulation}
           balance={balance}
           error={botErrors.btc_accumulation}
+          configuring={configuringType === "btc_accumulation"}
+          onConfigureStart={() => setConfiguringType("btc_accumulation")}
+          onConfigureCancel={() => setConfiguringType(null)}
           onCreated={createBot}
           onStart={startBot}
           onStop={stopBot}
@@ -315,6 +384,9 @@ export default function Bots() {
           bot={bots.eth_dca_pro}
           balance={balance}
           error={botErrors.eth_dca_pro}
+          configuring={configuringType === "eth_dca_pro"}
+          onConfigureStart={() => setConfiguringType("eth_dca_pro")}
+          onConfigureCancel={() => setConfiguringType(null)}
           onCreated={createBot}
           onStart={startBot}
           onStop={stopBot}
