@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabaseClient";
 
 const BotsContext = createContext(null);
@@ -45,9 +45,12 @@ export function BotsProvider({ children }) {
 
   // Manual escape hatch — call this any time you want to force a fresh read,
   // e.g. from Bots.jsx on mount, regardless of whether the realtime channel fired.
-  const refreshBalance = () => {
+  // Wrapped in useCallback so its identity stays stable across renders — otherwise
+  // any effect that depends on it (e.g. "refresh on page mount/focus") would re-fire
+  // on every single render instead of just once.
+  const refreshBalance = useCallback(() => {
     if (userIdRef.current) fetchBalanceFor(userIdRef.current);
-  };
+  }, []);
 
   // ---- load user + balance once, and re-sync whenever the logged-in user changes ----
   useEffect(() => {
