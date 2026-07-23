@@ -31,6 +31,7 @@ body,
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-body);
+    overflow-x: hidden;
 }
 
 a {
@@ -74,10 +75,16 @@ h3 {
   border-bottom: none;
   box-shadow: none;
   padding: 28px 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  background: var(--bg);
 }
 .navbar-landing .container {
   max-width: none;
-  padding: 0 8px;
+  padding: 0 32px;
 }
 .navbar-landing-inner {
   display: flex;
@@ -129,11 +136,15 @@ h3 {
 }
 
 @media (max-width: 480px) {
+  .container {
+    padding: 0 16px;
+  }
+
   .navbar-landing {
     padding: 16px 0;
   }
   .navbar-landing .container {
-    padding: 0 12px;
+    padding: 0 16px;
   }
   .navbar-landing-inner {
     gap: 8px;
@@ -160,8 +171,8 @@ h3 {
 /* Tighter fit for narrow phones (Galaxy S8+ and similar, ~360px wide) */
 @media (max-width: 400px) {
   .navbar .container {
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-left: 0;
+    padding-right: 0;
   }
   .navbar-landing-inner {
     gap: 6px;
@@ -234,7 +245,7 @@ h3 {
     display: grid;
     grid-template-columns: 1.1fr 0.9fr;
     gap: 40px;
-    padding: 40px 0 60px;
+    padding: 140px 0 60px;
     align-items: center;
 }
 .hero .eyebrow {
@@ -298,7 +309,8 @@ h3 {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: visible;
+    overflow: hidden;
+    height: 480px;
 }
 
 .hero-photo {
@@ -334,9 +346,36 @@ h3 {
     max-width: 640px;
 }
 
-/* Mobile: image moves into Strategy section */
-.bots-photo-mobile {
+/* Mobile: image moves into the hero itself, cropped/zoomed to fill the box,
+   no border/frame */
+.hero-mobile-image-wrap {
     display: none;
+}
+
+@media (max-width: 1024px) {
+    .hero-mobile-image-wrap {
+        display: block;
+        width: 100%;
+        height: 300px;
+        overflow: hidden;
+        border-radius: var(--radius);
+        border: none;
+        margin-bottom: 24px;
+    }
+    .hero-mobile-image-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+        transform: scale(1.35);
+        display: block;
+    }
+}
+
+@media (max-width: 640px) {
+    .hero-mobile-image-wrap {
+        height: 260px;
+    }
 }
 
 /* ---------- Transparency grid ---------- */
@@ -352,22 +391,16 @@ h3 {
         display: none;
     }
 
-    .bots-photo-mobile {
-        display: block;
-        width: 100%;
-        height: auto;
-        border-radius: var(--radius);
-        border: 1px solid var(--border);
-        margin-bottom: 28px;
-    }
-
     .hero {
         grid-template-columns: 1fr;
-        padding: 32px 0 32px;
+        padding: 110px 0 20px;
     }
 
+    /* Smaller, better-proportioned heading so it doesn't wrap into
+       a tall stack of short lines */
     .hero-headline-lg {
-        font-size: clamp(2rem, 8vw, 2.8rem);
+        font-size: clamp(1.9rem, 7vw, 2.6rem);
+        line-height: 1.15;
         max-width: 100%;
     }
 
@@ -386,6 +419,13 @@ h3 {
 
     .transparency-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-headline-lg {
+        font-size: clamp(1.6rem, 8vw, 2rem);
+        line-height: 1.2;
     }
 }
 
@@ -455,6 +495,12 @@ h3 {
     color: var(--text-muted);
     max-width: 560px;
     line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+    .section {
+        padding: 36px 0;
+    }
 }
 
 .feature-grid {
@@ -878,6 +924,11 @@ h3 {
     color: var(--text);
     flex-shrink: 0;
 }
+.app-header-nav a.active {
+    background: var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+}
 .app-header-actions {
     display: flex;
     align-items: center;
@@ -902,14 +953,13 @@ h3 {
     justify-content: center;
     width: 34px;
     height: 34px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border);
+    border: none;
     background: transparent;
     color: var(--text);
     order: 4;
 }
 .menu-toggle:hover {
-    border-color: var(--accent);
+    color: var(--accent);
 }
 
 .mobile-menu {
@@ -926,7 +976,6 @@ h3 {
         justify-content: space-between;
     }
 
-    /* Order: logo on the left, then user icon, then hamburger — both flush right */
     .app-header .logo {
         order: 1;
     }
@@ -953,7 +1002,7 @@ h3 {
         gap: 4px;
         padding: 12px 24px 20px;
         border-top: 1px solid var(--border);
-        background: var(--panel);
+        background: var(--bg);
     }
     .mobile-menu a {
         display: flex;
@@ -970,11 +1019,11 @@ h3 {
         flex-shrink: 0;
     }
     .mobile-menu a.active {
-        background: var(--accent-soft);
-        color: var(--accent);
+        background: var(--accent);
+        color: var(--text);
     }
     .mobile-menu a.active svg {
-        color: var(--accent);
+        color: var(--text);
     }
     .mobile-menu .mobile-signout {
         margin-top: 8px;
@@ -1232,8 +1281,6 @@ h3 {
 }
 
 /* ---------- NEW: Markets Movers & Table Styles ---------- */
-/* These styles power the updated Markets page with Top Gainers/Losers, filters, and sortable table */
-
 .movers-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1294,7 +1341,6 @@ h3 {
     color: var(--loss);
 }
 
-/* Coin circle (replaces old coin-icon) */
 .coin-circle {
     border-radius: 50%;
     display: flex;
@@ -1307,7 +1353,6 @@ h3 {
     font-family: var(--font-display);
 }
 
-/* Toolbar */
 .markets-toolbar {
     display: flex;
     flex-wrap: wrap;
@@ -1375,7 +1420,6 @@ h3 {
     white-space: nowrap;
 }
 
-/* Table */
 .markets-table-card {
     overflow: hidden;
     padding: 0;
@@ -1470,7 +1514,6 @@ h3 {
     color: var(--text-muted);
     font-size: 0.85rem;
 }
-/* Table-specific trade button (override for the table) */
 .markets-table .trade-btn {
     background: var(--accent-soft);
     border: none;
@@ -1486,7 +1529,6 @@ h3 {
     background: var(--accent);
     color: #fff;
 }
-/* Override the global refresh-all-btn for the Markets page */
 .refresh-all-btn {
     margin-top: 2rem;
     display: block;
@@ -1499,13 +1541,11 @@ h3 {
 
 /* ---------- Markets page: mobile fixes ---------- */
 @media (max-width: 640px) {
-    /* Stack Top Gainers / Top Losers instead of squishing side by side */
     .movers-grid {
         grid-template-columns: 1fr;
         gap: 1rem;
     }
 
-    /* Let mover rows wrap instead of overlapping price/badge */
     .mover-row {
         flex-wrap: wrap;
         gap: 0.4rem 0;
@@ -1525,7 +1565,6 @@ h3 {
         font-size: 0.85rem;
     }
 
-    /* Toolbar: stack filters above search */
     .markets-toolbar {
         flex-direction: column;
         align-items: stretch;
@@ -1540,7 +1579,6 @@ h3 {
         width: 100%;
     }
 
-    /* Force table to fit exactly within the screen — no horizontal scroll/drag */
     .markets-table-scroll {
         overflow-x: hidden;
     }
@@ -1549,7 +1587,6 @@ h3 {
         width: 100%;
     }
 
-    /* Hide Volume and Market Cap columns entirely on small screens */
     .markets-table th:nth-child(5),
     .markets-table td:nth-child(5),
     .markets-table th:nth-child(6),
@@ -1557,7 +1594,6 @@ h3 {
         display: none;
     }
 
-    /* Column width budget for remaining columns (must add to 100%) */
     .markets-table th:nth-child(1),
     .markets-table td:nth-child(1) {
         width: 28px;
@@ -1581,7 +1617,6 @@ h3 {
         text-align: right;
     }
 
-    /* Shrink coin icon + text so name column fits */
     .markets-table .td-pair {
         gap: 0.4rem;
     }
@@ -1612,7 +1647,6 @@ h3 {
         white-space: nowrap;
     }
 
-    /* Compact trade button so it never gets clipped */
     .markets-table .trade-btn {
         padding: 0.35rem 0.5rem;
         font-size: 0.7rem;
@@ -1625,7 +1659,6 @@ h3 {
         padding: 0.55rem 0.35rem;
     }
 
-    /* Prevent page from scrolling sideways */
     .main-content {
         padding: 20px 12px;
         overflow-x: hidden;
@@ -1703,7 +1736,7 @@ h3 {
     line-height: 1.5;
     max-width: 420px;
 }
-/* ---------- Deposit page: container, method selector, amount ---------- */
+
 .deposit-container {
     max-width: 680px;
     margin: 0 auto;
@@ -1811,6 +1844,7 @@ h3 {
     width: 100%;
     justify-content: center;
 }
+
 /* ---------- Withdraw page ---------- */
 .withdraw-balance-panel {
     background: linear-gradient(135deg, var(--accent), #3a4bc4);
@@ -1936,7 +1970,7 @@ h3 {
     color: #f5c542;
     flex-shrink: 0;
 }
-/* ---------- Deposit/Withdraw: full width on mobile ---------- */
+
 @media (max-width: 640px) {
     .deposit-container {
         max-width: 100%;
@@ -1967,6 +2001,7 @@ h3 {
         width: calc(100% + 32px);
     }
 }
+
 /* ---------- Bots page: hero banner ---------- */
 .bots-hero {
     background: linear-gradient(135deg, var(--accent), #3a4bc4);
@@ -2549,6 +2584,24 @@ h3 {
         overflow-x: auto;
     }
 }
+
+@media (max-width: 480px) {
+    .spot-page-full {
+        height: calc(100vh - 100px);
+    }
+    .live-dot-label {
+        font-size: 11px;
+    }
+    .change-pill {
+        font-size: 11px;
+        padding: 3px 8px;
+    }
+    .tf-btn {
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+}
+
 .live-dot-label {
     display: flex;
     align-items: center;
@@ -2587,6 +2640,7 @@ h3 {
         opacity: 0.6;
     }
 }
+
 /* ---------- Chat Widget (persistent, blue theme) ---------- */
 .chat-launcher {
     position: fixed;
@@ -2755,6 +2809,7 @@ h3 {
         right: 16px;
     }
 }
+
 /* ---------- Chat Widget: dropdown menu + avatar fix ---------- */
 .chat-menu-wrap {
     position: relative;
@@ -2935,7 +2990,6 @@ h3 {
     border-color: var(--accent);
 }
 
-/* Card-style table wrapper instead of bare rows */
 .admin-users-table {
     width: 100%;
     border-collapse: separate;
@@ -3270,22 +3324,6 @@ h3 {
   }
 }
 
-@media (max-width: 480px) {
-  .spot-page-full {
-    height: calc(100vh - 100px);
-  }
-  .live-dot-label {
-    font-size: 11px;
-  }
-  .change-pill {
-    font-size: 11px;
-    padding: 3px 8px;
-  }
-  .tf-btn {
-    padding: 5px 10px;
-    font-size: 12px;
-  }
-}
 /* ---------- Bot activity log ---------- */
 .activity-log {
   margin-top: 16px;
