@@ -82,6 +82,7 @@ export default function Dashboard() {
   const [totalValue, setTotalValue] = useState(0);
   const [balanceLoading, setBalanceLoading] = useState(true);
   const [balanceError, setBalanceError] = useState("");
+  const [userId, setUserId] = useState(null);
 
   // TODO: portfolio % change still needs real P&L calculation once Binance API is wired in
   const portfolioChange = 0;
@@ -100,6 +101,8 @@ export default function Dashboard() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawAddress, setWithdrawAddress] = useState("");
   const [pendingWithdrawals, setPendingWithdrawals] = useState([]);
+  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
+  const [withdrawError, setWithdrawError] = useState("");
 
   // ---------- Reset to the main dashboard whenever the Dashboard link ----------
   // ---------- is clicked in the sidebar, even if we're already on /dashboard ----------
@@ -120,6 +123,8 @@ export default function Dashboard() {
         } = await supabase.auth.getUser();
         if (userError) throw userError;
         if (!user) throw new Error("No logged-in user found.");
+
+        setUserId(user.id);
 
         const { data, error } = await supabase
           .from("profiles")
@@ -159,6 +164,62 @@ export default function Dashboard() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // ---------- Load this user's real withdrawals + keep status in sync ----------
+  useEffect(() => {
+    if (!userId) return;
+
+    async function loadWithdrawals() {
+      const { data, error } = await supabase
+        .from("withdrawals")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Failed to load withdrawals:", error.message);
+        return;
+      }
+      setPendingWithdrawals(data || []);
+    }
+
+    loadWithdrawals();
+
+    // Realtime: reflect admin approve/reject instantly, and pick up
+    // any new request inserted from elsewhere.
+    const channel = supabase
+      .channel(`withdrawals:${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "withdrawals",
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            setPendingWithdrawals((prev) => {
+              if (prev.some((w) => w.id === payload.new.id)) return prev;
+              return [payload.new, ...prev];
+            });
+          } else if (payload.eventType === "UPDATE") {
+            setPendingWithdrawals((prev) =>
+              prev.map((w) => (w.id === payload.new.id ? payload.new : w)),
+            );
+          } else if (payload.eventType === "DELETE") {
+            setPendingWithdrawals((prev) =>
+              prev.filter((w) => w.id !== payload.old.id),
+            );
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
 
   const watchlist = WATCHLIST_BASES.map((base) => {
     const p = pairs.find((pair) => pair.symbol === `${base}/USDT`);
@@ -203,22 +264,39 @@ export default function Dashboard() {
   const canSubmitWithdrawal =
     withdrawAmount.trim() !== "" &&
     Number(withdrawAmount) > 0 &&
-    withdrawAmount.trim() !== "" &&
     Number(withdrawAmount) <= totalValue &&
-    withdrawAddress.trim() !== "";
+    withdrawAddress.trim() !== "" &&
+    !withdrawSubmitting;
 
-  const handleWithdrawSubmit = () => {
-    if (!canSubmitWithdrawal) return;
+  const handleWithdrawSubmit = async () => {
+    if (!canSubmitWithdrawal || !userId) return;
 
-    const newWithdrawal = {
-      id: Date.now(),
-      method: selectedWithdrawMethod,
-      amount: withdrawAmount,
-      address: withdrawAddress,
-      status: "pending",
-    };
+    setWithdrawSubmitting(true);
+    setWithdrawError("");
 
-    setPendingWithdrawals((prev) => [newWithdrawal, ...prev]);
+    const { data, error } = await supabase
+      .from("withdrawals")
+      .insert({
+        user_id: userId,
+        method: selectedWithdrawMethod,
+        amount: Number(withdrawAmount),
+        address: withdrawAddress.trim(),
+        status: "pending",
+      })
+      .select()
+      .single();
+
+    setWithdrawSubmitting(false);
+
+    if (error) {
+      console.error("Failed to submit withdrawal:", error.message);
+      setWithdrawError(error.message);
+      return;
+    }
+
+    // Realtime subscription above will also deliver this INSERT — the
+    // de-dupe check there prevents it from being added twice.
+    setPendingWithdrawals((prev) => [data, ...prev]);
     setWithdrawAmount("");
     setWithdrawAddress("");
   };
@@ -363,8 +441,13 @@ export default function Dashboard() {
           onClick={handleWithdrawSubmit}
           disabled={!canSubmitWithdrawal}
         >
-          Withdraw
+          {withdrawSubmitting ? "Submitting…" : "Withdraw"}
         </button>
+        {withdrawError && (
+          <p className="error-text" style={{ marginTop: 8 }}>
+            {withdrawError}
+          </p>
+        )}
         {Number(withdrawAmount) > totalValue &&
           withdrawAmount.trim() !== "" && (
             <p className="error-text" style={{ marginTop: 8 }}>
@@ -400,7 +483,13 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </div>
-                  <span className="pending-status-pill">Pending</span>
+                  <span className={`pending-status-pill ${w.status}`}>
+                    {w.status === "pending"
+                      ? "Pending"
+                      : w.status === "approved"
+                        ? "Approved"
+                        : "Rejected"}
+                  </span>
                 </div>
               );
             })}
