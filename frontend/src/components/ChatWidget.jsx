@@ -2820,16 +2820,13 @@ h3 {
 @media (max-width: 480px) {
     .chat-widget {
         width: calc(100vw - 24px);
-        height: calc(100dvh - 100px);
-        max-height: calc(100dvh - 48px);
-        bottom: calc(12px + env(safe-area-inset-bottom));
-        right: calc(12px + env(safe-area-inset-right));
-        left: auto;
-        border-radius: var(--radius);
+        height: calc(100vh - 100px);
+        bottom: 12px;
+        right: 12px;
     }
     .chat-launcher {
-        bottom: calc(16px + env(safe-area-inset-bottom));
-        right: calc(16px + env(safe-area-inset-right));
+        bottom: 16px;
+        right: 16px;
     }
 }
 
