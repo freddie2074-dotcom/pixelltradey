@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { supabase } from "../supabaseClient";
 
 const QUICK_REPLIES = ["I have a question", "Tell me more"];
 
@@ -6,31 +7,154 @@ export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
-  const [messages, setMessages] = useState([
-    { from: "bot", text: "👋 Hi! How can we help?" },
-  ]);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const [conversationId, setConversationId] = useState(null);
+  const [userId, setUserId] = useState(null);
+  const [ready, setReady] = useState(false);
+  const channelRef = useRef(null);
 
-  function sendMessage(text) {
+  // Bootstrap: get the logged-in user, find-or-create their conversation,
+  // load message history, then subscribe to new inserts (admin replies).
+  useEffect(() => {
+    let cancelled = false;
+
+    async function bootstrap() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        // No logged-in user — widget still opens but can't persist chat.
+        if (!cancelled) setReady(true);
+        return;
+      }
+      if (cancelled) return;
+      setUserId(user.id);
+
+      // Find an existing conversation for this user, or create one.
+      let convoId = null;
+      const { data: existing, error: findErr } = await supabase
+        .from("conversations")
+        .select("id")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (findErr) {
+        console.error("Failed to look up conversation:", findErr.message);
+      }
+
+      if (existing) {
+        convoId = existing.id;
+      } else {
+        const { data: created, error: createErr } = await supabase
+          .from("conversations")
+          .insert({ user_id: user.id })
+          .select()
+          .single();
+        if (createErr) {
+          console.error("Failed to create conversation:", createErr.message);
+        } else {
+          convoId = created.id;
+        }
+      }
+
+      if (cancelled || !convoId) {
+        if (!cancelled) setReady(true);
+        return;
+      }
+      setConversationId(convoId);
+
+      // Load message history for this conversation.
+      const { data: history, error: msgErr } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", convoId)
+        .order("created_at", { ascending: true });
+
+      if (msgErr) {
+        console.error("Failed to load messages:", msgErr.message);
+      } else if (!cancelled) {
+        setMessages(
+          (history || []).map((m) => ({
+            id: m.id,
+            from: m.sender === "admin" ? "bot" : "user",
+            text: m.text,
+          })),
+        );
+      }
+
+      // Realtime: pick up new messages (admin replies) as they arrive.
+      const channel = supabase
+        .channel(`messages:${convoId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+            filter: `conversation_id=eq.${convoId}`,
+          },
+          (payload) => {
+            const m = payload.new;
+            setMessages((prev) => {
+              if (prev.some((existingMsg) => existingMsg.id === m.id)) return prev;
+              return [
+                ...prev,
+                { id: m.id, from: m.sender === "admin" ? "bot" : "user", text: m.text },
+              ];
+            });
+          },
+        )
+        .subscribe();
+
+      channelRef.current = channel;
+      if (!cancelled) setReady(true);
+    }
+
+    bootstrap();
+
+    return () => {
+      cancelled = true;
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, []);
+
+  async function sendMessage(text) {
     const trimmed = text.trim();
-    if (!trimmed) return;
-    setMessages((prev) => [...prev, { from: "user", text: trimmed }]);
+    if (!trimmed || !conversationId) return;
+
     setInput("");
-    // Placeholder bot reply — wire this up to a real support backend later
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          from: "bot",
-          text: "Thanks for reaching out! Our team will get back to you shortly.",
-        },
-      ]);
-    }, 600);
+
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({
+        conversation_id: conversationId,
+        sender: "user",
+        text: trimmed,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Failed to send message:", error.message);
+      return;
+    }
+
+    // Add immediately (realtime echo is de-duped by id in the handler above).
+    setMessages((prev) => [...prev, { id: data.id, from: "user", text: data.text }]);
   }
 
   function handleKeyDown(e) {
     if (e.key === "Enter") sendMessage(input);
   }
+
+  const showGreeting = messages.length === 0;
 
   return (
     <>
@@ -118,9 +242,20 @@ export default function ChatWidget() {
           </div>
 
           <div className="chat-widget-body">
-            {messages.map((m, i) => (
+            {!ready && (
+              <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Loading…</p>
+            )}
+
+            {ready && showGreeting && (
+              <div className="chat-bubble-row bot">
+                <div className="chat-avatar">🎧</div>
+                <div className="chat-bubble bot">👋 Hi! How can we help?</div>
+              </div>
+            )}
+
+            {messages.map((m) => (
               <div
-                key={i}
+                key={m.id}
                 className={`chat-bubble-row ${m.from === "user" ? "user" : "bot"}`}
               >
                 {m.from === "bot" && <div className="chat-avatar">🎧</div>}
@@ -128,7 +263,7 @@ export default function ChatWidget() {
               </div>
             ))}
 
-            {messages.length === 1 && (
+            {ready && showGreeting && (
               <div className="chat-quick-replies">
                 {QUICK_REPLIES.map((qr) => (
                   <button
@@ -150,11 +285,13 @@ export default function ChatWidget() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
+              disabled={!userId}
             />
             <button
               className="chat-send-btn"
               onClick={() => sendMessage(input)}
               aria-label="Send message"
+              disabled={!userId}
             >
               ➤
             </button>
