@@ -4,28 +4,25 @@ import { supabase } from "../supabaseClient";
 
 const css = `
 .pf {
-  --bg: #000000;
-  --card: #101010;
-  --border: #262626;
-  --muted: #a3a3a3;
-  --strong: #ffffff;
+  --bg: #000;
+  --card: #111;
+  --border: #242424;
+  --muted: #a1a1aa;
+  --strong: #fff;
   --green: #22e58b;
-  --green-bg: #0b3b26;
-  --green-border: #17663f;
+  --green-bg: rgba(34, 229, 139, .14);
+  --green-border: rgba(34, 229, 139, .35);
   --blue: #5b9bff;
-  --blue-bg: #15243f;
-  --blue-border: #27427a;
+  --blue-bg: rgba(91, 155, 255, .14);
+  --blue-border: rgba(91, 155, 255, .35);
   --red: #ff4d5e;
-  width: 100%;
-  min-height: 100vh;
-  margin: 0;
+  max-width: 640px;
+  margin: 0 auto;
   padding: 88px 20px 56px;
-  background: #000000;
   color: var(--muted);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   box-sizing: border-box;
 }
-.pf__wrap { max-width: 640px; margin: 0 auto; }
 .pf *, .pf *::before, .pf *::after { box-sizing: border-box; }
 .pf h1 { margin: 0; font-size: 24px; line-height: 1.2; font-weight: 700; color: var(--strong); }
 .pf__sub { margin: 6px 0 24px; font-size: 14.5px; color: var(--muted); }
@@ -260,14 +257,6 @@ export default function Profile() {
     }
   }
 
-  useEffect(() => {
-    const prev = document.body.style.background;
-    document.body.style.background = "#000000";
-    return () => {
-      document.body.style.background = prev;
-    };
-  }, []);
-
   async function signOut() {
     await supabase.auth.signOut();
     navigate("/");
@@ -281,7 +270,6 @@ export default function Profile() {
     <>
       <style>{css}</style>
       <div className="pf">
-        <div className="pf__wrap">
         <h1>Profile</h1>
         <p className="pf__sub">Manage your account information</p>
 
@@ -395,7 +383,6 @@ export default function Profile() {
             <Link className="pf__link" to="/verify">Verify identity</Link>
             <button className="pf__link pf__link--red" type="button" onClick={signOut}>Sign out</button>
           </div>
-        </div>
         </div>
       </div>
     </>
