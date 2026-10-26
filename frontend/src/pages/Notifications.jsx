@@ -13,7 +13,7 @@ const css = `
   --blue-border: color-mix(in srgb, var(--blue) 28%, transparent);
   max-width: 760px;
   margin: 0 auto;
-  padding: 88px 24px 48px;
+  padding: 12px 24px 48px;
   color: var(--text);
   box-sizing: border-box;
 }
@@ -53,7 +53,7 @@ const css = `
 .nt__empty { padding: 48px 20px; text-align: center; font-size: 14px; }
 .nt__empty b { display: block; margin-bottom: 4px; color: var(--strong); font-size: 15px; }
 @media (max-width: 600px) {
-  .nt { padding: 76px 14px 32px; }
+  .nt { padding: 0 14px 32px; }
   .nt__item { flex-wrap: wrap; }
   .nt__time { order: 3; width: 100%; padding-left: 22px; }
 }
