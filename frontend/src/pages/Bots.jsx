@@ -26,22 +26,33 @@ const BOT_META = {
 };
 
 /* ------------------------------------------------------------------ */
-/* Palette — blue primary, green/red for data only                    */
+/* Palette — blue-navy, pulled from root.css                          */
+/*   --bg        #0a0e1a  page background                             */
+/*   --panel     #121a2e  card background                             */
+/*   --panel-alt #171f38  item / secondary background                 */
+/*   --border    #262f4a  border                                      */
+/*   --accent    #5b6ef5  blue accent                                 */
+/*   --gain      #35d0ba  data: gain  (teal, sits in the blue family) */
+/*   --loss      #ff6b6b  data: loss                                  */
 /* ------------------------------------------------------------------ */
 const C = {
   bg: "#0a0e1a",
-  card: "#111",
-  item: "#0f0f0f",
-  field: "#151515",
-  line: "#1f1f1f",
-  dim: "#a3a8a6",
-  text: "#fff",
-  textMuted: "#8a93b3",
-  blue: "#5b6ef5",
+  panel: "#121a2e",
+  panelAlt: "#171f38",
+  field: "#0a0e1a",
+  border: "#262f4a",
+  borderSoft: "#2f3a5a",
+  accent: "#5b6ef5",
+  accentSoft: "rgba(91, 110, 245, 0.14)",
+  accentRing: "rgba(91, 110, 245, 0.5)",
   blueBright: "#60a5fa",
-  blueSoft: "rgba(91, 110, 245, 0.14)",
-  gain: "#22c55e",
-  loss: "#f4525f",
+  gain: "#35d0ba",
+  loss: "#ff6b6b",
+  text: "#e7ecfb",
+  textMuted: "#8a93b3",
+  logBg: "#060a14",
+  iconBg: "#1e2740",
+  iconBorder: "#2f3a5a",
 };
 
 const MONO = "'IBM Plex Mono', Menlo, Consolas, monospace";
@@ -57,7 +68,13 @@ const RISK_TONE = { Low: "green", Medium: "amber", High: "red" };
 /* ------------------------------------------------------------------ */
 /* Inline icons                                                       */
 /* ------------------------------------------------------------------ */
-const svgBase = { fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" };
+const svgBase = {
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+};
 
 function BotIcon({ size = 22 }) {
   return (
@@ -105,11 +122,11 @@ function TrashIcon({ size = 15 }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Style tokens                                                       */
+/* Container tokens — layout mirrors .bots/*, colors are blue-navy    */
 /* ------------------------------------------------------------------ */
 const cardBase = {
-  background: C.card,
-  border: `1px solid ${C.line}`,
+  background: C.panel,               /* #121a2e — was #111 */
+  border: `1px solid ${C.border}`,    /* #262f4a — was #1f1f1f */
   borderRadius: 16,
   overflow: "hidden",
 };
@@ -120,7 +137,7 @@ const cheadStyle = {
   justifyContent: "center",
   gap: 12,
   padding: 20,
-  borderBottom: `1px solid ${C.line}`,
+  borderBottom: `1px solid ${C.border}`,
   fontSize: 20,
   fontWeight: 700,
   letterSpacing: "-0.01em",
@@ -135,9 +152,9 @@ const itemStyle = {
   rowGap: 14,
   alignItems: "start",
   padding: 16,
-  border: `1px solid ${C.line}`,
+  border: `1px solid ${C.border}`,
   borderRadius: 12,
-  background: C.item,
+  background: C.panelAlt,            /* #171f38 — was #0f0f0f */
 };
 
 const icoStyle = {
@@ -146,8 +163,8 @@ const icoStyle = {
   width: 48,
   height: 48,
   borderRadius: 10,
-  border: "1px solid #202020",
-  background: "#181818",
+  border: `1px solid ${C.iconBorder}`,  /* #2f3a5a — was #202020 */
+  background: C.iconBg,                /* #1e2740 — was #181818 */
   color: "#cfd3d1",
 };
 
@@ -160,9 +177,9 @@ const badgeBase = {
   whiteSpace: "nowrap",
 };
 const badgeTones = {
-  blue: { color: C.blueBright, background: C.blueSoft, borderColor: "rgba(91, 110, 245, 0.5)" },
-  green: { color: C.gain, background: "rgba(34, 197, 94, 0.12)", borderColor: "rgba(34, 197, 94, 0.5)" },
-  red: { color: C.loss, background: "rgba(244, 82, 95, 0.12)", borderColor: "rgba(244, 82, 95, 0.5)" },
+  blue: { color: C.blueBright, background: C.accentSoft, borderColor: C.accentRing },
+  green: { color: C.gain, background: "rgba(53, 208, 186, 0.12)", borderColor: "rgba(53, 208, 186, 0.5)" },
+  red: { color: C.loss, background: "rgba(255, 107, 107, 0.12)", borderColor: "rgba(255, 107, 107, 0.5)" },
   amber: { color: "#eab308", background: "rgba(234, 179, 8, 0.12)", borderColor: "rgba(234, 179, 8, 0.5)" },
 };
 const badge = (tone) => ({ ...badgeBase, ...(badgeTones[tone] || badgeTones.blue) });
@@ -183,9 +200,9 @@ const btnBase = {
   transition: "opacity 0.15s",
 };
 const btnVariants = {
-  primary: { background: C.blue, color: "#fff" },
-  outline: { background: "transparent", color: C.text, border: `1px solid ${C.line}` },
-  danger: { background: "#141414", color: "#d4d8d6", border: "1px solid #262626" },
+  primary: { background: C.accent, color: "#fff", border: `1px solid ${C.accent}` },
+  outline: { background: "transparent", color: C.text, border: `1px solid ${C.border}` },
+  danger: { background: C.panelAlt, color: "#d4d8d6", border: `1px solid ${C.border}` },
 };
 const btn = (variant, extra = {}) => ({ ...btnBase, ...btnVariants[variant], ...extra });
 
@@ -241,7 +258,7 @@ function randomComment(base, price) {
   return templates[Math.floor(Math.random() * templates.length)];
 }
 
-function useIsNarrow(breakpoint = 640) {
+function useIsNarrow(breakpoint = 800) {
   const [isNarrow, setIsNarrow] = useState(
     typeof window !== "undefined" && window.innerWidth < breakpoint
   );
@@ -259,7 +276,15 @@ function useIsNarrow(breakpoint = 640) {
 function Stat({ label, value, color }) {
   return (
     <div>
-      <div style={{ color: C.dim, fontSize: 11, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+      <div
+        style={{
+          color: C.textMuted,
+          fontSize: 11,
+          marginBottom: 4,
+          textTransform: "uppercase",
+          letterSpacing: "0.04em",
+        }}
+      >
         {label}
       </div>
       <div style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, color: color || C.text }}>
@@ -273,9 +298,17 @@ function Stat({ label, value, color }) {
 /* Bot picker                                                         */
 /* ------------------------------------------------------------------ */
 function BotPicker({ bots, onSelect, onClose }) {
-  const isNarrow = useIsNarrow(800);
+  const isNarrow = useIsNarrow();
   return (
-    <div style={{ marginBottom: 18, padding: 16, border: `1px solid ${C.line}`, borderRadius: 12, background: C.item }}>
+    <div
+      style={{
+        marginBottom: 18,
+        padding: 16,
+        border: `1px solid ${C.border}`,
+        borderRadius: 12,
+        background: C.panelAlt,
+      }}
+    >
       <div
         style={{
           display: "flex",
@@ -284,10 +317,22 @@ function BotPicker({ bots, onSelect, onClose }) {
           marginBottom: 14,
         }}
       >
-        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+        <h4
+          style={{
+            margin: 0,
+            fontSize: 14,
+            fontWeight: 700,
+            color: C.text,
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+          }}
+        >
           Choose a Bot
         </h4>
-        <button style={btn("outline", { height: 32, padding: "0 14px", fontSize: 13 })} onClick={onClose}>
+        <button
+          style={btn("outline", { height: 32, padding: "0 14px", fontSize: 13 })}
+          onClick={onClose}
+        >
           Cancel
         </button>
       </div>
@@ -300,11 +345,11 @@ function BotPicker({ bots, onSelect, onClose }) {
               type="button"
               disabled={exists}
               onClick={() => onSelect(botType)}
-              onMouseEnter={(e) => { if (!exists) e.currentTarget.style.borderColor = C.blue; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.line; }}
+              onMouseEnter={(e) => { if (!exists) e.currentTarget.style.borderColor = C.accent; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.border; }}
               style={{
-                background: "#0a0a0a",
-                border: `1px solid ${C.line}`,
+                background: C.field,
+                border: `1px solid ${C.border}`,
                 borderRadius: 10,
                 padding: 16,
                 textAlign: "left",
@@ -315,16 +360,26 @@ function BotPicker({ bots, onSelect, onClose }) {
                 transition: "border-color 0.15s",
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 8,
+                  marginBottom: 6,
+                }}
+              >
                 <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>
                   {meta.icon} {meta.label}
                 </span>
                 {exists && <span style={badge("amber")}>configured</span>}
               </div>
-              <div style={{ color: C.dim, fontSize: 12, fontFamily: MONO, marginBottom: 8 }}>
+              <div style={{ color: C.textMuted, fontSize: 12, fontFamily: MONO, marginBottom: 8 }}>
                 {meta.cadence}
               </div>
-              <div style={{ color: C.dim, fontSize: 13, lineHeight: 1.5 }}>{meta.description}</div>
+              <div style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.5 }}>
+                {meta.description}
+              </div>
             </button>
           );
         })}
@@ -334,7 +389,7 @@ function BotPicker({ bots, onSelect, onClose }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Create-bot config form (styled like a bot item)                    */
+/* Create-bot form                                                    */
 /* ------------------------------------------------------------------ */
 function CreateBotForm({ meta, balance, onCreate, onCancel }) {
   const [amount, setAmount] = useState(100);
@@ -354,9 +409,9 @@ function CreateBotForm({ meta, balance, onCreate, onCancel }) {
       onSubmit={handleSubmit}
       style={{
         padding: 20,
-        border: `1px solid ${C.line}`,
+        border: `1px solid ${C.border}`,
         borderRadius: 12,
-        background: C.item,
+        background: C.panelAlt,
         display: "flex",
         flexDirection: "column",
         gap: 16,
@@ -368,10 +423,10 @@ function CreateBotForm({ meta, balance, onCreate, onCancel }) {
         </h4>
         <span style={badge("amber")}>not active</span>
       </div>
-      <div style={{ color: C.dim, fontSize: 13, fontFamily: MONO }}>{meta.symbol}</div>
+      <div style={{ color: C.textMuted, fontSize: 13, fontFamily: MONO }}>{meta.symbol}</div>
 
       <div>
-        <label style={{ display: "block", fontSize: 13, color: C.dim, marginBottom: 6 }}>
+        <label style={{ display: "block", fontSize: 13, color: C.textMuted, marginBottom: 6 }}>
           Allocation size (USDT)
         </label>
         <input
@@ -386,7 +441,7 @@ function CreateBotForm({ meta, balance, onCreate, onCancel }) {
             height: 46,
             padding: "0 14px",
             borderRadius: 9,
-            border: `1px solid #222`,
+            border: `1px solid ${C.border}`,
             background: C.field,
             color: C.text,
             fontSize: 15,
@@ -395,14 +450,20 @@ function CreateBotForm({ meta, balance, onCreate, onCancel }) {
             boxSizing: "border-box",
           }}
         />
-        <p style={{ color: C.dim, fontSize: 12, margin: "8px 0 0" }}>
+        <p style={{ color: C.textMuted, fontSize: 12, margin: "8px 0 0" }}>
           Min amount: ${MIN_AMOUNT} · Available: ${Number(balance || 0).toFixed(2)}
         </p>
-        {tooHigh && <p style={{ color: C.loss, fontSize: 13, margin: "6px 0 0" }}>Allocation exceeds your available balance.</p>}
+        {tooHigh && (
+          <p style={{ color: C.loss, fontSize: 13, margin: "6px 0 0" }}>
+            Allocation exceeds your available balance.
+          </p>
+        )}
       </div>
 
       <div style={{ display: "flex", gap: 10 }}>
-        <button type="button" style={btn("outline", { flex: 1 })} onClick={onCancel}>Cancel</button>
+        <button type="button" style={btn("outline", { flex: 1 })} onClick={onCancel}>
+          Cancel
+        </button>
         <button
           style={btn("primary", {
             flex: 1,
@@ -430,7 +491,10 @@ function ActivityLog({ trades, active, base }) {
     const iv = setInterval(() => {
       price = price * (1 + (Math.random() - 0.5) * 0.004);
       setComments((prev) =>
-        [{ id: `c-${Date.now()}`, ts: Date.now(), msg: randomComment(base, price) }, ...prev].slice(0, LOG_LINES_SHOWN)
+        [{ id: `c-${Date.now()}`, ts: Date.now(), msg: randomComment(base, price) }, ...prev].slice(
+          0,
+          LOG_LINES_SHOWN
+        )
       );
     }, COMMENT_INTERVAL_MS);
     return () => clearInterval(iv);
@@ -451,21 +515,21 @@ function ActivityLog({ trades, active, base }) {
     <div
       style={{
         gridColumn: "1 / -1",
-        border: `1px solid ${C.line}`,
+        border: `1px solid ${C.border}`,
         borderRadius: 10,
         overflow: "hidden",
-        background: "#080808",
+        background: C.logBg,
       }}
     >
       <div
         style={{
           padding: "8px 14px",
-          borderBottom: `1px solid ${C.line}`,
+          borderBottom: `1px solid ${C.border}`,
           fontSize: 11,
           fontWeight: 700,
           textTransform: "uppercase",
           letterSpacing: "0.06em",
-          color: C.dim,
+          color: C.textMuted,
         }}
       >
         Activity Log
@@ -481,7 +545,7 @@ function ActivityLog({ trades, active, base }) {
         }}
       >
         {lines.length === 0 ? (
-          <div style={{ color: C.dim, margin: 0, fontSize: 13 }}>
+          <div style={{ color: C.textMuted, fontSize: 13 }}>
             {active
               ? "Bot is running — activity will appear here."
               : "No trades yet — start the bot to see activity."}
@@ -491,9 +555,16 @@ function ActivityLog({ trades, active, base }) {
             line.kind === "comment" ? (
               <div
                 key={line.id}
-                style={{ display: "flex", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                style={{
+                  display: "flex",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
               >
-                <span style={{ color: "#4a4a4a", display: "inline-block", width: 74, marginRight: 8 }}>
+                <span
+                  style={{ color: "#4a4a4a", display: "inline-block", width: 74, marginRight: 8 }}
+                >
                   {fmtTime(line.ts)}
                 </span>
                 <span style={{ color: COMMENT_COLOR }}>{line.msg}</span>
@@ -501,9 +572,18 @@ function ActivityLog({ trades, active, base }) {
             ) : (
               <div
                 key={line.id}
-                style={{ display: "flex", gap: 6, alignItems: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  alignItems: "center",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
               >
-                <span style={{ color: "#4a4a4a", display: "inline-block", width: 74, marginRight: 8 }}>
+                <span
+                  style={{ color: "#4a4a4a", display: "inline-block", width: 74, marginRight: 8 }}
+                >
                   {fmtTime(line.trade.when)}
                 </span>
                 <span style={{ color: line.trade.isWin ? C.gain : C.loss }}>
@@ -526,7 +606,7 @@ function ActivityLog({ trades, active, base }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Bot row (`.bots__item` layout)                                     */
+/* Bot row                                                            */
 /* ------------------------------------------------------------------ */
 function BotRow({
   botType,
@@ -542,7 +622,7 @@ function BotRow({
   onRemove,
 }) {
   const meta = BOT_META[botType];
-  const isNarrow = useIsNarrow(800);
+  const isNarrow = useIsNarrow();
 
   if (!bot && configuring) {
     return (
@@ -581,10 +661,10 @@ function BotRow({
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>
           {meta.icon} {meta.label}
         </h3>
-        <p style={{ margin: "4px 0 0", color: C.dim, fontSize: 14, lineHeight: 1.5 }}>
+        <p style={{ margin: "4px 0 0", color: C.textMuted, fontSize: 14, lineHeight: 1.5 }}>
           {meta.description}
         </p>
-        <p style={{ margin: "4px 0 0", color: C.dim, fontSize: 12, fontFamily: MONO }}>
+        <p style={{ margin: "4px 0 0", color: C.textMuted, fontSize: 12, fontFamily: MONO }}>
           {meta.cadence}
         </p>
       </div>
@@ -607,7 +687,7 @@ function BotRow({
             gridTemplateColumns: isNarrow ? "repeat(2, 1fr)" : "repeat(5, 1fr)",
             gap: 14,
             paddingTop: 14,
-            borderTop: `1px solid ${C.line}`,
+            borderTop: `1px solid ${C.border}`,
           }}
         >
           <Stat label="P&L" value={fmtUsd(pnl)} color={pnl >= 0 ? C.gain : C.loss} />
@@ -650,7 +730,12 @@ function BotRow({
           </>
         ) : !isActive ? (
           <>
-            <button style={btn("primary")} onClick={() => onStart(botType)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+            <button
+              style={btn("primary")}
+              onClick={() => onStart(botType)}
+              onMouseEnter={hoverIn}
+              onMouseLeave={hoverOut}
+            >
               <PlayIcon /> Start Bot
             </button>
             <button style={btn("outline")} onClick={() => onRemove(botType)}>
@@ -665,8 +750,14 @@ function BotRow({
             <button
               style={btn("danger")}
               onClick={() => onRemove(botType)}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(244, 82, 95, 0.5)"; e.currentTarget.style.color = C.loss; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#262626"; e.currentTarget.style.color = "#d4d8d6"; }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "rgba(255, 107, 107, 0.5)";
+                e.currentTarget.style.color = C.loss;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = C.border;
+                e.currentTarget.style.color = "#d4d8d6";
+              }}
             >
               <TrashIcon /> Delete
             </button>
@@ -675,7 +766,7 @@ function BotRow({
       </div>
 
       {!canConfigure && !bot && (
-        <p style={{ gridColumn: "1 / -1", color: C.dim, fontSize: 12, margin: 0 }}>
+        <p style={{ gridColumn: "1 / -1", color: C.textMuted, fontSize: 12, margin: 0 }}>
           Requires a balance of at least ${MIN_CONFIGURE_BALANCE} to configure.
         </p>
       )}
@@ -703,7 +794,7 @@ export default function Bots() {
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [configuringType, setConfiguringType] = useState(null);
-  const isNarrow = useIsNarrow(800);
+  const isNarrow = useIsNarrow();
 
   const totalBots = Object.keys(BOT_META).length;
   const meetsMinBalance = Number(balance) >= MIN_CONFIGURE_BALANCE;
@@ -724,144 +815,153 @@ export default function Bots() {
   };
 
   return (
+    /* Full-bleed blue-navy page background */
     <div
       style={{
-        maxWidth: 1100,
-        margin: "0 auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: 20,
+        background: C.bg,             /* #0a0e1a */
         color: C.text,
+        minHeight: "100vh",
+        margin: "0 -24px",            /* bleed out of main-content padding */
+        padding: "0 24px 32px",
+        boxSizing: "border-box",
       }}
     >
-      {/* Trading overview card */}
-      <div style={cardBase}>
-        <div style={cheadStyle}>
-          <span style={{ color: C.blue, display: "inline-flex" }}>
-            <ActivityIcon />
-          </span>
-          Trading Overview
-        </div>
-        <div style={{ padding: 24 }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: isNarrow ? "repeat(2, 1fr)" : "repeat(7, 1fr)",
-              gap: isNarrow ? 16 : 24,
-            }}
-          >
-            <Stat label="Total Bots" value={totalBots} />
-            <Stat
-              label="Available"
-              value={balanceLoading ? "…" : `$${Number(balance).toFixed(2)}`}
-            />
-            <Stat
-              label="P&L"
-              value={fmtUsd(totals.pnl)}
-              color={totals.pnl >= 0 ? C.gain : C.loss}
-            />
-            <Stat
-              label="Win Rate"
-              value={totals.winRate !== null ? `${totals.winRate}%` : "—"}
-            />
-            <Stat label="Trades" value={totals.trades} />
-            <Stat label="Allocated" value={`$${totals.allocated.toFixed(0)}`} />
-            <Stat
-              label="Status"
-              value={statusLabel}
-              color={meetsMinBalance ? C.gain : C.loss}
-            />
+      <div
+        style={{
+          maxWidth: 1100,
+          margin: "0 auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: 20,
+        }}
+      >
+        {/* Trading overview card */}
+        <div style={cardBase}>
+          <div style={cheadStyle}>
+            <span style={{ color: C.accent, display: "inline-flex" }}>
+              <ActivityIcon />
+            </span>
+            Trading Overview
           </div>
-        </div>
-      </div>
-
-      {/* DCA Bots card */}
-      <div style={cardBase}>
-        <div style={cheadStyle}>
-          <span style={{ color: C.blue, display: "inline-flex" }}>
-            <BotIcon />
-          </span>
-          DCA Bots ({totalBots})
-        </div>
-
-        <div style={{ padding: 24 }}>
-          {/* Section header */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: isNarrow ? "stretch" : "flex-start",
-              justifyContent: "space-between",
-              flexDirection: isNarrow ? "column" : "row",
-              gap: 12,
-              marginBottom: 20,
-            }}
-          >
-            <div>
-              <h3 style={{ margin: "0 0 4px", fontSize: 18, color: C.text }}>
-                Dollar-Cost Averaging Bots
-              </h3>
-              <p style={{ margin: 0, color: C.dim, fontSize: 14 }}>
-                Regular purchases of assets regardless of price
-              </p>
-            </div>
-            <button
-              style={btn("primary", { width: isNarrow ? "100%" : undefined })}
-              onClick={() => setPickerOpen(true)}
-              onMouseEnter={hoverIn}
-              onMouseLeave={hoverOut}
+          <div style={{ padding: 24 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isNarrow ? "repeat(2, 1fr)" : "repeat(7, 1fr)",
+                gap: isNarrow ? 16 : 24,
+              }}
             >
-              Create New Bot
-            </button>
-          </div>
-
-          {balanceError && (
-            <p style={{ color: C.loss, fontSize: 13, margin: "0 0 12px" }}>{balanceError}</p>
-          )}
-
-          {pickerOpen && (
-            <BotPicker
-              bots={bots}
-              onSelect={handlePickBot}
-              onClose={() => setPickerOpen(false)}
-            />
-          )}
-
-          {/* Bot list */}
-          <div style={{ display: "grid", gap: 14 }}>
-            <BotRow
-              botType="btc_accumulation"
-              bot={bots.btc_accumulation}
-              balance={balance}
-              error={botErrors.btc_accumulation}
-              configuring={configuringType === "btc_accumulation"}
-              onConfigureStart={() => setConfiguringType("btc_accumulation")}
-              onConfigureCancel={() => setConfiguringType(null)}
-              onCreated={createBot}
-              onStart={startBot}
-              onStop={stopBot}
-              onRemove={removeBot}
-            />
-            <BotRow
-              botType="eth_dca_pro"
-              bot={bots.eth_dca_pro}
-              balance={balance}
-              error={botErrors.eth_dca_pro}
-              configuring={configuringType === "eth_dca_pro"}
-              onConfigureStart={() => setConfiguringType("eth_dca_pro")}
-              onConfigureCancel={() => setConfiguringType(null)}
-              onCreated={createBot}
-              onStart={startBot}
-              onStop={stopBot}
-              onRemove={removeBot}
-            />
+              <Stat label="Total Bots" value={totalBots} />
+              <Stat
+                label="Available"
+                value={balanceLoading ? "…" : `$${Number(balance).toFixed(2)}`}
+              />
+              <Stat
+                label="P&L"
+                value={fmtUsd(totals.pnl)}
+                color={totals.pnl >= 0 ? C.gain : C.loss}
+              />
+              <Stat
+                label="Win Rate"
+                value={totals.winRate !== null ? `${totals.winRate}%` : "—"}
+              />
+              <Stat label="Trades" value={totals.trades} />
+              <Stat label="Allocated" value={`$${totals.allocated.toFixed(0)}`} />
+              <Stat
+                label="Status"
+                value={statusLabel}
+                color={meetsMinBalance ? C.gain : C.loss}
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <p style={{ color: C.dim, fontSize: 12, margin: 0, lineHeight: 1.5 }}>
-        Automated bots trade based on your configuration and market conditions. Past performance
-        does not guarantee future results. Only allocate funds you can afford to have at risk.
-      </p>
+        {/* DCA Bots card */}
+        <div style={cardBase}>
+          <div style={cheadStyle}>
+            <span style={{ color: C.accent, display: "inline-flex" }}>
+              <BotIcon />
+            </span>
+            DCA Bots ({totalBots})
+          </div>
+
+          <div style={{ padding: 24 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: isNarrow ? "stretch" : "flex-start",
+                justifyContent: "space-between",
+                flexDirection: isNarrow ? "column" : "row",
+                gap: 12,
+                marginBottom: 20,
+              }}
+            >
+              <div>
+                <h3 style={{ margin: "0 0 4px", fontSize: 18, color: C.text }}>
+                  Dollar-Cost Averaging Bots
+                </h3>
+                <p style={{ margin: 0, color: C.textMuted, fontSize: 14 }}>
+                  Regular purchases of assets regardless of price
+                </p>
+              </div>
+              <button
+                style={btn("primary", { width: isNarrow ? "100%" : undefined })}
+                onClick={() => setPickerOpen(true)}
+                onMouseEnter={hoverIn}
+                onMouseLeave={hoverOut}
+              >
+                Create New Bot
+              </button>
+            </div>
+
+            {balanceError && (
+              <p style={{ color: C.loss, fontSize: 13, margin: "0 0 12px" }}>{balanceError}</p>
+            )}
+
+            {pickerOpen && (
+              <BotPicker
+                bots={bots}
+                onSelect={handlePickBot}
+                onClose={() => setPickerOpen(false)}
+              />
+            )}
+
+            <div style={{ display: "grid", gap: 14 }}>
+              <BotRow
+                botType="btc_accumulation"
+                bot={bots.btc_accumulation}
+                balance={balance}
+                error={botErrors.btc_accumulation}
+                configuring={configuringType === "btc_accumulation"}
+                onConfigureStart={() => setConfiguringType("btc_accumulation")}
+                onConfigureCancel={() => setConfiguringType(null)}
+                onCreated={createBot}
+                onStart={startBot}
+                onStop={stopBot}
+                onRemove={removeBot}
+              />
+              <BotRow
+                botType="eth_dca_pro"
+                bot={bots.eth_dca_pro}
+                balance={balance}
+                error={botErrors.eth_dca_pro}
+                configuring={configuringType === "eth_dca_pro"}
+                onConfigureStart={() => setConfiguringType("eth_dca_pro")}
+                onConfigureCancel={() => setConfiguringType(null)}
+                onCreated={createBot}
+                onStart={startBot}
+                onStop={stopBot}
+                onRemove={removeBot}
+              />
+            </div>
+          </div>
+        </div>
+
+        <p style={{ color: C.textMuted, fontSize: 12, margin: 0, lineHeight: 1.5 }}>
+          Automated bots trade based on your configuration and market conditions. Past performance
+          does not guarantee future results. Only allocate funds you can afford to have at risk.
+        </p>
+      </div>
     </div>
   );
 }
