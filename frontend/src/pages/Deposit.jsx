@@ -1,4 +1,5 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { supabase } from "../supabaseClient";
 
 /* ------------------------------------------------------------------
    EDIT THIS: your real receiving addresses.
@@ -322,6 +323,21 @@ const fmtUsd = (n) =>
 const mmss = (s) =>
   `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
+// Database row -> the shape the UI uses
+const fromRow = (r) => ({
+  id: r.id,
+  userId: r.user_id,
+  usd: Number(r.usd),
+  symbol: r.symbol,
+  network: r.network,
+  address: r.address,
+  amount: r.amount,
+  airNetwork: Number(r.air_network || 0).toFixed(2),
+  status: r.status,
+  expires: r.expires_at,
+  created: r.created_at,
+});
+
 function Dropdown({ selected, placeholder, items, onPick }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -384,7 +400,8 @@ function Dropdown({ selected, placeholder, items, onPick }) {
    Component
 ------------------------------------------------------------------- */
 export default function Deposit() {
-  const [balance] = useState(0);
+  const [balance, setBalance] = useState(0);
+  const [userId, setUserId] = useState(null);
 
   const [step, setStep] = useState(1);
   const [amount, setAmount] = useState("");
@@ -393,30 +410,92 @@ export default function Deposit() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [note, setNote] = useState(null);
-  const [dep, setDep] = useState(null);
-  
-  // Initialize history from localStorage
-  const [history, setHistory] = useState(() => {
-    try {
-      const saved = localStorage.getItem("deposit_history");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [depId, setDepId] = useState(null);
+  const [history, setHistory] = useState([]);
 
   const [now, setNow] = useState(Date.now());
   const [copied, setCopied] = useState("");
   const [checking, setChecking] = useState(false);
 
-  // Save history to localStorage whenever it changes
-  useEffect(() => {
+  // Deposit currently shown on step 3 (always read from history so admin changes show up)
+  const dep = history.find((h) => h.id === depId) || null;
+
+  // Latest history for the timers without re-creating them
+  const historyRef = useRef([]);
+  historyRef.current = history;
+
+  // Load balance + deposits from the database
+  const load = useCallback(async () => {
     try {
-      localStorage.setItem("deposit_history", JSON.stringify(history));
-    } catch {
-      // ignore
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      setUserId(user.id);
+
+      const [{ data: prof }, { data: rows, error }] = await Promise.all([
+        supabase.from("profiles").select("balance").eq("id", user.id).single(),
+        supabase
+          .from("deposits")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(50),
+      ]);
+      if (error) throw error;
+      setBalance(Number(prof?.balance) || 0);
+      setHistory((rows || []).map(fromRow));
+    } catch (e) {
+      console.error("Failed to load deposits:", e.message);
     }
-  }, [history]);
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // Mark pending deposits past their time as expired and store a notification
+  const expireStale = useCallback(async () => {
+    const stale = historyRef.current.filter(
+      (d) =>
+        d.status === "pending" &&
+        d.expires &&
+        new Date(d.expires).getTime() < Date.now(),
+    );
+    for (const d of stale) {
+      // Only flips if still pending, so the notification is created once
+      const { data: changed, error } = await supabase
+        .from("deposits")
+        .update({ status: "expired" })
+        .eq("id", d.id)
+        .eq("status", "pending")
+        .select();
+      if (error || !changed || changed.length === 0) continue;
+
+      setHistory((h) =>
+        h.map((x) => (x.id === d.id ? { ...x, status: "expired" } : x)),
+      );
+      await supabase.from("notifications").insert({
+        user_id: d.userId,
+        type: "deposit_expired",
+        title: "Deposit expired",
+        message: `Your deposit of ${fmtUsd(d.usd)} (${d.amount} ${d.symbol}) expired before payment was received. Start a new deposit to get a fresh address.`,
+        read: false,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(expireStale, 15000);
+    expireStale();
+    return () => clearInterval(id);
+  }, [expireStale, history.length]);
+
+  // Pick up admin confirmations while the page is open
+  useEffect(() => {
+    const id = setInterval(load, 20000);
+    return () => clearInterval(id);
+  }, [load]);
 
   useEffect(() => {
     const prev = document.body.style.background;
@@ -465,7 +544,7 @@ export default function Deposit() {
     setStep(2);
   };
 
-  const generate = () => {
+  const generate = async () => {
     setErr("");
     const n = NETS[net];
     if (!coinInfo || !n) return;
@@ -475,39 +554,56 @@ export default function Deposit() {
     if (!okPair) return setErr("Selected coin is not supported on this network.");
 
     setBusy(true);
+    try {
+      let uid = userId;
+      if (!uid) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) throw new Error("You need to be signed in.");
+        uid = user.id;
+        setUserId(uid);
+      }
 
-    const usd = Number(amount);
-    const airNetworkBonus = usd / 50;
-    
-    // THE FIX: Calculate crypto amount based ONLY on the base USD amount.
-    // The user does not pay for the bonus.
-    const coinAmt = (usd / coinInfo.priceUsd).toFixed(coinInfo.dec);
-    
-    const expires = new Date(Date.now() + HOLD_MIN * 60000).toISOString();
+      const usd = Number(amount);
+      const bonus = usd / 50;
 
-    const rec = {
-      id: `local-${Date.now()}`,
-      usd,
-      symbol: coinInfo.s,
-      network: net,
-      address: n.address,
-      amount: coinAmt, // Base amount (e.g. $100 worth)
-      airNetwork: airNetworkBonus.toFixed(2),
-      status: "pending",
-      expires,
-      created: new Date().toISOString(),
-    };
+      // Crypto amount is based only on the base USD amount (the bonus is free)
+      const coinAmt = (usd / coinInfo.priceUsd).toFixed(coinInfo.dec);
+      const expires = new Date(Date.now() + HOLD_MIN * 60000).toISOString();
 
-    setBusy(false);
-    setDep(rec);
-    setHistory((h) => [rec, ...h]);
-    setStep(3);
-    showNote("info", "Payment created. Send the exact amount to the address shown.");
+      const { data, error } = await supabase
+        .from("deposits")
+        .insert({
+          user_id: uid,
+          usd,
+          symbol: coinInfo.s,
+          network: net,
+          address: n.address,
+          amount: coinAmt,
+          air_network: Number(bonus.toFixed(2)),
+          status: "pending",
+          expires_at: expires,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+
+      const rec = fromRow(data);
+      setDepId(rec.id);
+      setHistory((h) => [rec, ...h]);
+      setStep(3);
+      showNote("info", "Payment created. Send the exact amount to the address shown.");
+    } catch (e) {
+      setErr(e.message || "Could not create the deposit. Try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const reset = () => {
     setStep(1);
-    setDep(null);
+    setDepId(null);
     setAmount("");
     setCoin("USDT");
     setNet("TRC20");
@@ -520,12 +616,15 @@ export default function Deposit() {
   const depStatus = dep ? statusOf(dep) : "";
   const depLive = depStatus === "pending";
 
-  const checkStatus = () => {
+  const checkStatus = async () => {
     if (!dep) return;
     setChecking(true);
+    await load();
+    await expireStale();
     setChecking(false);
 
-    const s = statusOf(dep);
+    const fresh = historyRef.current.find((h) => h.id === dep.id) || dep;
+    const s = statusOf(fresh);
     if (s === "completed") showNote("ok", "Payment received. Your balance is updated.");
     else if (s === "expired") showNote("err", "This deposit expired. Start a new deposit.");
     else if (s === "failed") showNote("err", "This deposit failed. Start a new deposit.");
@@ -649,7 +748,7 @@ export default function Deposit() {
                 <div className="dep__pay">
                   <div className="dep__time">
                     <span>Time Remaining</span>
-                    <b>{left > 0 ? mmss(left) : "Expired"}</b>
+                    <b>{depStatus === "completed" ? "Done" : left > 0 ? mmss(left) : "Expired"}</b>
                   </div>
 
                   {(() => {
