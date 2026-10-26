@@ -25,7 +25,7 @@ const css = `
   --amber: #f5b13d;
   max-width: 760px;
   margin: 0 auto;
-  padding: 72px 24px 48px;
+  padding: 15px 24px 48px;
   color: var(--text);
   box-sizing: border-box;
 }
@@ -205,7 +205,7 @@ const css = `
 .vr__submit:disabled { opacity: .5; cursor: not-allowed; }
 
 @media (max-width: 600px) {
-  .vf { padding: 64px 14px 32px; }
+  .vf { padding: 8px 14px 32px; }
   .vf__row2 { grid-template-columns: 1fr; }
   .vf__row2 .vf__field + .vf__field { margin-top: 16px; }
   .vr__steps { grid-template-columns: 1fr; }
