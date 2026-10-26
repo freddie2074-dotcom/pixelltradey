@@ -25,7 +25,7 @@ const css = `
   --amber: #f5b13d;
   max-width: 760px;
   margin: 0 auto;
-  padding: 88px 24px 48px;
+  padding: 72px 24px 48px;
   color: var(--text);
   box-sizing: border-box;
 }
@@ -35,7 +35,7 @@ const css = `
 
 /* ---------- top bar ---------- */
 .vf__bar {
-  display: flex; align-items: center; gap: 14px; margin-bottom: 36px; padding-bottom: 14px;
+  display: flex; align-items: center; gap: 14px; margin-bottom: 16px; padding-bottom: 14px;
   border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text);
 }
 .vf__back {
@@ -78,7 +78,7 @@ const css = `
 .vf__start svg { width: 16px; height: 16px; }
 
 /* ---------- choose document type ---------- */
-.vf__choose { max-width: 448px; margin: 40px auto 0; text-align: center; }
+.vf__choose { max-width: 448px; margin: 8px auto 0; text-align: center; }
 .vf__choose h1 { margin: 0 0 10px; font-size: 22px; line-height: 1.2; }
 .vf__choose .vf__sub { margin: 0 0 30px; font-size: 14px; }
 .vf__opt {
@@ -205,7 +205,7 @@ const css = `
 .vr__submit:disabled { opacity: .5; cursor: not-allowed; }
 
 @media (max-width: 600px) {
-  .vf { padding: 76px 14px 32px; }
+  .vf { padding: 64px 14px 32px; }
   .vf__row2 { grid-template-columns: 1fr; }
   .vf__row2 .vf__field + .vf__field { margin-top: 16px; }
   .vr__steps { grid-template-columns: 1fr; }
