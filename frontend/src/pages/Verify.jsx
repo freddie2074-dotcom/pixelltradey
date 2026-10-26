@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 
 const BUCKET = "kyc";
@@ -31,6 +32,52 @@ const css = `
 .vf *, .vf *::before, .vf *::after { box-sizing: border-box; }
 .vf h1 { margin: 0 0 6px; font-size: 26px; font-weight: 700; color: var(--strong); }
 .vf__sub { margin: 0 0 24px; font-size: 14px; }
+
+/* ---------- top bar ---------- */
+.vf__bar {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 36px; padding-bottom: 14px;
+  border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text);
+}
+.vf__back {
+  display: grid; place-items: center; width: 34px; height: 34px; padding: 0; cursor: pointer;
+  color: var(--text); background: none; border: 0; border-radius: 8px; transition: color .15s, background .15s;
+}
+.vf__back:hover { color: var(--strong); background: var(--surface); }
+.vf__back svg { width: 20px; height: 20px; }
+
+/* ---------- intro ---------- */
+.vf__intro { max-width: 448px; margin: 0 auto; text-align: center; }
+.vf__hero {
+  display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto 26px;
+  border-radius: 50%; color: var(--blue); background: var(--blue-bg); border: 1px solid var(--blue-border);
+}
+.vf__hero svg { width: 26px; height: 26px; }
+.vf__intro h1 { margin: 0 0 16px; font-size: 26px; line-height: 1.2; }
+.vf__lead { margin: 0 0 28px; font-size: 15px; line-height: 1.7; }
+.vf__lead b { color: var(--strong); font-weight: 600; }
+.vf__feat {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 12px; padding: 14px 16px; text-align: left;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+}
+.vf__feat-ic { flex-shrink: 0; width: 28px; font-size: 20px; line-height: 1; text-align: center; }
+.vf__feat b { display: block; font-size: 14.5px; font-weight: 600; color: var(--strong); }
+.vf__feat span { display: block; margin-top: 2px; font-size: 12.5px; }
+.vf__privacy {
+  display: flex; align-items: flex-start; gap: 12px; margin-top: 24px; padding: 14px 16px; text-align: left;
+  font-size: 12.5px; line-height: 1.7; background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+}
+.vf__privacy-ic { flex-shrink: 0; width: 28px; font-size: 18px; line-height: 1.5; text-align: center; }
+.vf__privacy b { color: var(--strong); font-weight: 600; }
+.vf__start {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; height: 44px; margin-top: 24px; font-family: inherit; font-size: 14px; font-weight: 600;
+  color: #fff; background: var(--blue); border: 1px solid var(--blue); border-radius: 8px;
+  cursor: pointer; transition: opacity .15s;
+}
+.vf__start:hover { opacity: .9; }
+.vf__start svg { width: 16px; height: 16px; }
+
+/* ---------- cards + form ---------- */
 .vf__card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
 .vf__card h2 { margin: 0 0 14px; font-size: 15px; font-weight: 600; color: var(--strong); }
 .vf__status { display: flex; gap: 14px; align-items: flex-start; }
@@ -116,6 +163,8 @@ const ICON_UP = (
     <path d="M12 3v12" />
   </>
 );
+const ICON_BACK = <path d="M19 12H5M12 19l-7-7 7-7" />;
+const ICON_NEXT = <path d="m9 6 6 6-6 6" />;
 
 function Icon({ children }) {
   return (
@@ -159,9 +208,11 @@ function FileDrop({ label, hint, file, onPick, id }) {
 }
 
 export default function Verify() {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [record, setRecord] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [step, setStep] = useState("intro"); // "intro" | "form"
 
   const [docType, setDocType] = useState(DOC_TYPES[0]);
   const [fullName, setFullName] = useState("");
@@ -263,6 +314,12 @@ export default function Verify() {
 
   const status = record?.status;
   const showForm = !loading && status !== "pending" && status !== "approved";
+  const showIntro = showForm && step === "intro";
+
+  function goBack() {
+    if (showForm && step === "form") setStep("intro");
+    else navigate(-1);
+  }
 
   const STATUS = {
     pending: {
@@ -286,8 +343,12 @@ export default function Verify() {
     <>
       <style>{css}</style>
       <div className="vf">
-        <h1>Verify your identity</h1>
-        <p className="vf__sub">Upload a government-issued ID and a selfie to unlock your full account.</p>
+        <div className="vf__bar">
+          <button className="vf__back" type="button" onClick={goBack} aria-label="Go back">
+            <Icon>{ICON_BACK}</Icon>
+          </button>
+          <span>Identity Verification</span>
+        </div>
 
         {loading && <div className="vf__card">Loading...</div>}
 
@@ -308,64 +369,118 @@ export default function Verify() {
           </div>
         )}
 
-        {showForm && (
-          <form className="vf__card" onSubmit={submit}>
-            <h2>Your details</h2>
-            <div className="vf__row2">
-              <div className="vf__field">
-                <label className="vf__label" htmlFor="vf-name">Full name (as on your ID)</label>
-                <input id="vf-name" className="vf__input" value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
-              </div>
-              <div className="vf__field">
-                <label className="vf__label" htmlFor="vf-country">Country of issue</label>
-                <input id="vf-country" className="vf__input" value={country} onChange={(e) => setCountry(e.target.value)} autoComplete="country-name" />
-              </div>
+        {showIntro && (
+          <div className="vf__intro">
+            <div className="vf__hero">
+              <Icon>{ICON_UP}</Icon>
             </div>
+            <h1>Verify Your Identity</h1>
+            <p className="vf__lead">
+              Complete a quick identity check to unlock <b>higher withdrawal limits</b> and gain full
+              access to all platform features.
+            </p>
 
-            <div className="vf__field">
-              <span className="vf__label">Document type</span>
-              <div className="vf__types">
-                {DOC_TYPES.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    className={`vf__type ${t.id === docType.id ? "is-on" : ""}`}
-                    onClick={() => {
-                      setDocType(t);
-                      if (!t.back) setBack(null);
-                    }}
-                  >
-                    {t.label}
-                  </button>
-                ))}
+            <div className="vf__feat">
+              <span className="vf__feat-ic" aria-hidden="true">🪪</span>
+              <div>
+                <b>Government-issued ID</b>
+                <span>Passport, national ID, or driver's license</span>
               </div>
             </div>
-
-            <div className="vf__field">
-              <label className="vf__label" htmlFor="vf-num">Document number</label>
-              <input id="vf-num" className="vf__input" value={docNumber} onChange={(e) => setDocNumber(e.target.value)} autoComplete="off" />
+            <div className="vf__feat">
+              <span className="vf__feat-ic" aria-hidden="true">🤳</span>
+              <div>
+                <b>Live selfie</b>
+                <span>A photo of your face taken in real time</span>
+              </div>
+            </div>
+            <div className="vf__feat">
+              <span className="vf__feat-ic" aria-hidden="true">⏱️</span>
+              <div>
+                <b>Quick process</b>
+                <span>Takes less than 2 minutes to complete</span>
+              </div>
             </div>
 
-            <div className="vf__uploads">
-              <FileDrop id="vf-front" label={docType.back ? "Front of ID" : "Photo page"} hint="JPG, PNG or PDF" file={front} onPick={pick(setFront)} />
-              {docType.back && (
-                <FileDrop id="vf-back" label="Back of ID" hint="JPG, PNG or PDF" file={back} onPick={pick(setBack)} />
-              )}
-              <FileDrop id="vf-selfie" label="Selfie holding your ID" hint="JPG or PNG" file={selfie} onPick={pick(setSelfie)} />
+            <div className="vf__privacy">
+              <span className="vf__privacy-ic" aria-hidden="true">🔒</span>
+              <p style={{ margin: 0 }}>
+                Your documents are <b>used solely for identity verification</b> and are permanently
+                deleted from our systems once verification is complete. We do not share your data with
+                third parties.
+              </p>
             </div>
 
-            <ul className="vf__tips">
-              <li>All four corners of the document must be visible.</li>
-              <li>Text must be sharp and free of glare.</li>
-              <li>Your face and the ID must both be clear in the selfie.</li>
-              <li>Files must be under {MAX_MB} MB each.</li>
-            </ul>
-
-            <button className="vf__btn" type="submit" disabled={busy}>
-              {busy ? "Uploading..." : "Submit for review"}
+            <button className="vf__start" type="button" onClick={() => setStep("form")}>
+              Start Verification
+              <Icon>{ICON_NEXT}</Icon>
             </button>
-            {msg && <div className="vf__msg vf__msg--err">{msg.text}</div>}
-          </form>
+          </div>
+        )}
+
+        {showForm && step === "form" && (
+          <>
+            <h1>Verify your identity</h1>
+            <p className="vf__sub">Upload a government-issued ID and a selfie to unlock your full account.</p>
+
+            <form className="vf__card" onSubmit={submit}>
+              <h2>Your details</h2>
+              <div className="vf__row2">
+                <div className="vf__field">
+                  <label className="vf__label" htmlFor="vf-name">Full name (as on your ID)</label>
+                  <input id="vf-name" className="vf__input" value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
+                </div>
+                <div className="vf__field">
+                  <label className="vf__label" htmlFor="vf-country">Country of issue</label>
+                  <input id="vf-country" className="vf__input" value={country} onChange={(e) => setCountry(e.target.value)} autoComplete="country-name" />
+                </div>
+              </div>
+
+              <div className="vf__field">
+                <span className="vf__label">Document type</span>
+                <div className="vf__types">
+                  {DOC_TYPES.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={`vf__type ${t.id === docType.id ? "is-on" : ""}`}
+                      onClick={() => {
+                        setDocType(t);
+                        if (!t.back) setBack(null);
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="vf__field">
+                <label className="vf__label" htmlFor="vf-num">Document number</label>
+                <input id="vf-num" className="vf__input" value={docNumber} onChange={(e) => setDocNumber(e.target.value)} autoComplete="off" />
+              </div>
+
+              <div className="vf__uploads">
+                <FileDrop id="vf-front" label={docType.back ? "Front of ID" : "Photo page"} hint="JPG, PNG or PDF" file={front} onPick={pick(setFront)} />
+                {docType.back && (
+                  <FileDrop id="vf-back" label="Back of ID" hint="JPG, PNG or PDF" file={back} onPick={pick(setBack)} />
+                )}
+                <FileDrop id="vf-selfie" label="Selfie holding your ID" hint="JPG or PNG" file={selfie} onPick={pick(setSelfie)} />
+              </div>
+
+              <ul className="vf__tips">
+                <li>All four corners of the document must be visible.</li>
+                <li>Text must be sharp and free of glare.</li>
+                <li>Your face and the ID must both be clear in the selfie.</li>
+                <li>Files must be under {MAX_MB} MB each.</li>
+              </ul>
+
+              <button className="vf__btn" type="submit" disabled={busy}>
+                {busy ? "Uploading..." : "Submit for review"}
+              </button>
+              {msg && <div className="vf__msg vf__msg--err">{msg.text}</div>}
+            </form>
+          </>
         )}
       </div>
     </>
