@@ -121,31 +121,32 @@ const css = `
 }
 .vf__input:focus { border-color: var(--blue-border); }
 .vf__input::placeholder { color: var(--text); }
-.vf__types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.vf__type {
-  height: 42px; padding: 0 10px; font-family: inherit; font-size: 13px; font-weight: 500;
-  color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-  cursor: pointer; transition: border-color .15s, color .15s;
-}
-.vf__type:hover { border-color: #2f3a5c; }
-.vf__type.is-on { color: var(--blue); background: var(--blue-bg); border-color: var(--blue-border); }
-.vf__uploads { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-top: 16px; }
-.vf__drop {
+.vf__shot {
   position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 6px; min-height: 140px; padding: 14px; text-align: center; font-size: 12px; cursor: pointer;
-  background: var(--bg); border: 1px dashed #2f3a5c; border-radius: 10px; overflow: hidden;
+  width: 100%; max-width: 382px; height: 216px; margin: 0 auto 24px; padding: 20px; text-align: center; cursor: pointer;
+  background: var(--bg); border: 2px dashed #2f3a5c; border-radius: 16px; overflow: hidden;
   transition: border-color .15s;
 }
-.vf__drop:hover, .vf__drop:focus-within { border-color: var(--blue-border); }
-.vf__drop svg { width: 22px; height: 22px; color: var(--blue); }
-.vf__drop b { color: var(--strong); font-size: 13px; }
-.vf__drop input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-.vf__drop img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.vf__drop.has-file { border-style: solid; border-color: var(--blue-border); }
+.vf__shot:hover, .vf__shot:focus-within { border-color: var(--blue-border); }
+.vf__shot svg { width: 34px; height: 34px; margin-bottom: 18px; color: var(--text); }
+.vf__shot b { font-size: 14px; font-weight: 600; color: var(--text); }
+.vf__shot span { margin-top: 12px; font-size: 12px; line-height: 1.5; }
+.vf__shot input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.vf__shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.vf__shot.has-file { border-style: solid; border-color: var(--blue-border); }
 .vf__fname {
   position: absolute; left: 0; right: 0; bottom: 0; padding: 6px 8px; font-size: 11px;
   color: var(--strong); background: rgba(10,14,26,.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.vf__go {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; height: 40px; font-family: inherit; font-size: 14px; font-weight: 600;
+  color: #fff; background: var(--blue); border: 1px solid var(--blue); border-radius: 8px;
+  cursor: pointer; transition: opacity .15s;
+}
+.vf__go:hover:not(:disabled) { opacity: .9; }
+.vf__go:disabled { opacity: .5; cursor: not-allowed; }
+.vf__go svg { width: 16px; height: 16px; }
 .vf__tips { margin: 16px 0 0; padding: 12px 14px 12px 30px; font-size: 12px; line-height: 1.6; border-radius: 8px; background: var(--blue-bg); border: 1px solid var(--blue-border); }
 .vf__btn {
   width: 100%; height: 44px; margin-top: 18px; font-family: inherit; font-size: 14px; font-weight: 600;
@@ -161,7 +162,6 @@ const css = `
   .vf { padding: 76px 14px 32px; }
   .vf__row2 { grid-template-columns: 1fr; }
   .vf__row2 .vf__field + .vf__field { margin-top: 16px; }
-  .vf__types { grid-template-columns: 1fr; }
 }
 `;
 
@@ -180,6 +180,12 @@ const ICON_UP = (
     <path d="M12 3v12" />
   </>
 );
+const ICON_CAMERA = (
+  <>
+    <path d="M14.5 4h-5L8 6H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3z" />
+    <circle cx="12" cy="13" r="3.5" />
+  </>
+);
 const ICON_BACK = <path d="M19 12H5M12 19l-7-7 7-7" />;
 const ICON_NEXT = <path d="m9 6 6 6-6 6" />;
 
@@ -191,7 +197,7 @@ function Icon({ children }) {
   );
 }
 
-function FileDrop({ label, hint, file, onPick, id }) {
+function CaptureBox({ id, file, hint, onPick }) {
   const [preview, setPreview] = useState(null);
 
   useEffect(() => {
@@ -204,16 +210,16 @@ function FileDrop({ label, hint, file, onPick, id }) {
   }, [file]);
 
   return (
-    <label className={`vf__drop ${file ? "has-file" : ""}`} htmlFor={id}>
+    <label className={`vf__shot ${file ? "has-file" : ""}`} htmlFor={id}>
       {preview && <img src={preview} alt="" />}
       {!preview && (
         <>
-          <Icon>{ICON_UP}</Icon>
-          <b>{label}</b>
+          <Icon>{ICON_CAMERA}</Icon>
+          <b>{file ? "File selected" : "Tap to open camera"}</b>
           <span>{file ? file.name : hint}</span>
         </>
       )}
-      {file && <span className="vf__fname">{file.name}</span>}
+      {preview && file && <span className="vf__fname">{file.name}</span>}
       <input
         id={id}
         type="file"
@@ -229,7 +235,7 @@ export default function Verify() {
   const [user, setUser] = useState(null);
   const [record, setRecord] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [step, setStep] = useState("intro"); // "intro" | "type" | "details"
+  const [step, setStep] = useState("intro"); // intro | type | front | back | selfie | details
 
   const [docType, setDocType] = useState(DOC_TYPES[0]);
   const [fullName, setFullName] = useState("");
@@ -333,11 +339,39 @@ export default function Verify() {
   const showForm = !loading && status !== "pending" && status !== "approved";
   const showIntro = showForm && step === "intro";
 
+  const flow = ["intro", "type", "front", ...(docType.back ? ["back"] : []), "selfie", "details"];
+  const goNext = () => setStep(flow[Math.min(flow.indexOf(step) + 1, flow.length - 1)]);
+
   function goBack() {
-    if (showForm && step === "details") setStep("type");
-    else if (showForm && step === "type") setStep("intro");
+    const i = flow.indexOf(step);
+    if (showForm && i > 0) setStep(flow[i - 1]);
     else navigate(-1);
   }
+
+  const CAPTURE = {
+    front: {
+      title: docType.back ? "Front of Document" : "Photo Page",
+      sub: `Place your ${docType.label} on a flat surface in good lighting`,
+      hint: "Ensure all four corners are visible and text is clear",
+      file: front,
+      set: setFront,
+    },
+    back: {
+      title: "Back of Document",
+      sub: `Turn your ${docType.label} over and keep it on a flat surface`,
+      hint: "Ensure all four corners are visible and text is clear",
+      file: back,
+      set: setBack,
+    },
+    selfie: {
+      title: "Take a Selfie",
+      sub: `Hold your ${docType.label} next to your face in good lighting`,
+      hint: "Your face and the ID must both be clear",
+      file: selfie,
+      set: setSelfie,
+    },
+  };
+  const cap = CAPTURE[step];
 
   const STATUS = {
     pending: {
@@ -448,7 +482,7 @@ export default function Verify() {
                 onClick={() => {
                   setDocType(t);
                   if (!t.back) setBack(null);
-                  setStep("details");
+                  setStep("front");
                 }}
               >
                 <span className="vf__opt-ic" aria-hidden="true">{t.icon}</span>
@@ -459,50 +493,43 @@ export default function Verify() {
           </div>
         )}
 
+        {showForm && cap && (
+          <div className="vf__choose">
+            <h1>{cap.title}</h1>
+            <p className="vf__sub">{cap.sub}</p>
+            <CaptureBox id={`vf-${step}`} file={cap.file} hint={cap.hint} onPick={pick(cap.set)} />
+            <button className="vf__go" type="button" disabled={!cap.file} onClick={goNext}>
+              Continue
+              <Icon>{ICON_NEXT}</Icon>
+            </button>
+            {msg && <div className="vf__msg vf__msg--err">{msg.text}</div>}
+          </div>
+        )}
+
         {showForm && step === "details" && (
-          <>
-            <h1>Verify your identity</h1>
-            <p className="vf__sub">Upload your {docType.label} and a selfie to unlock your full account.</p>
-
-            <form className="vf__card" onSubmit={submit}>
-              <h2>Your details</h2>
-              <div className="vf__row2">
-                <div className="vf__field">
-                  <label className="vf__label" htmlFor="vf-name">Full name (as on your ID)</label>
-                  <input id="vf-name" className="vf__input" value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
-                </div>
-                <div className="vf__field">
-                  <label className="vf__label" htmlFor="vf-country">Country of issue</label>
-                  <input id="vf-country" className="vf__input" value={country} onChange={(e) => setCountry(e.target.value)} autoComplete="country-name" />
-                </div>
+          <div className="vf__choose">
+            <h1>Your Details</h1>
+            <p className="vf__sub">Enter them exactly as they appear on your {docType.label}</p>
+            <form className="vf__card" onSubmit={submit} style={{ textAlign: "left" }}>
+              <div className="vf__field">
+                <label className="vf__label" htmlFor="vf-name">Full name (as on your ID)</label>
+                <input id="vf-name" className="vf__input" value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
               </div>
-
+              <div className="vf__field">
+                <label className="vf__label" htmlFor="vf-country">Country of issue</label>
+                <input id="vf-country" className="vf__input" value={country} onChange={(e) => setCountry(e.target.value)} autoComplete="country-name" />
+              </div>
               <div className="vf__field">
                 <label className="vf__label" htmlFor="vf-num">Document number</label>
                 <input id="vf-num" className="vf__input" value={docNumber} onChange={(e) => setDocNumber(e.target.value)} autoComplete="off" />
               </div>
-
-              <div className="vf__uploads">
-                <FileDrop id="vf-front" label={docType.back ? "Front of ID" : "Photo page"} hint="JPG, PNG or PDF" file={front} onPick={pick(setFront)} />
-                {docType.back && (
-                  <FileDrop id="vf-back" label="Back of ID" hint="JPG, PNG or PDF" file={back} onPick={pick(setBack)} />
-                )}
-                <FileDrop id="vf-selfie" label="Selfie holding your ID" hint="JPG or PNG" file={selfie} onPick={pick(setSelfie)} />
-              </div>
-
-              <ul className="vf__tips">
-                <li>All four corners of the document must be visible.</li>
-                <li>Text must be sharp and free of glare.</li>
-                <li>Your face and the ID must both be clear in the selfie.</li>
-                <li>Files must be under {MAX_MB} MB each.</li>
-              </ul>
 
               <button className="vf__btn" type="submit" disabled={busy}>
                 {busy ? "Uploading..." : "Submit for review"}
               </button>
               {msg && <div className="vf__msg vf__msg--err">{msg.text}</div>}
             </form>
-          </>
+          </div>
         )}
       </div>
     </>
