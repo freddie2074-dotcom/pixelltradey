@@ -339,8 +339,50 @@ export default function Withdraw() {
     }
   }
 
+  // Initial load + live updates:
+  //   - a status flip on any of this user's withdrawals (pending → completed/rejected)
+  //   - a balance change on the user's profile (admin deducts on approval)
+  // Both re-run load(), so the available balance and the pill update without a refresh.
   useEffect(() => {
-    load();
+    let cancelled = false;
+    let channel = null;
+
+    async function init() {
+      await load();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+
+      channel = supabase
+        .channel(`withdrawals-realtime-${user.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "withdrawals",
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => { if (!cancelled) load(); }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "profiles",
+            filter: `id=eq.${user.id}`,
+          },
+          () => { if (!cancelled) load(); }
+        )
+        .subscribe();
+    }
+
+    init();
+
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
   const coin = COINS.find((c) => c.id === coinId);
