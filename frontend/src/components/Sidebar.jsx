@@ -105,13 +105,6 @@ const ICONS = {
       <path d="m21 21-4.3-4.3" />
     </>
   ),
-  download: (
-    <>
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <path d="m7 10 5 5 5-5" />
-      <path d="M12 15V3" />
-    </>
-  ),
   menu: (
     <>
       <line x1="3" y1="6" x2="21" y2="6" />
@@ -137,13 +130,8 @@ const links = [
 ];
 
 /* ------------------------------------------------------------------
-   Styles (navbar layout, blue accent comes from --accent in your
-   global CSS, fonts are inherited exactly as before)
+   Styles
 ------------------------------------------------------------------- */
-
-// Makes the logo's near-black background transparent:
-// alpha = 3 * (r + g + b) - 0.9. Raise 0.9 if a faint box remains,
-// lower it if the dark edges of the logo start to fade.
 const LOGO_KEY_FILTER =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='k' color-interpolation-filters='sRGB'%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 3 3 3 0 -0.9'/%3E%3C/filter%3E%3C/svg%3E#k\")";
 
@@ -151,7 +139,6 @@ const css = `
 .sb,
 .sb-drawer,
 .sb-overlay {
-  /* navy palette shared with the landing and login pages */
   --sb-bg: #0a0e1a;
   --sb-surface: #121a2e;
   --sb-border: #1f2842;
@@ -162,7 +149,6 @@ const css = `
   --sb-blue-border: color-mix(in srgb, var(--sb-blue) 28%, transparent);
   --sb-red: #ff3b4e;
   --sb-h: 56px;
-  /* logo height (width follows the image's own proportions) */
   --sb-logo-h: 50px;
 }
 
@@ -184,7 +170,6 @@ const css = `
   overflow: hidden;
 }
 
-/* logo box: bar-height and centered, so the logo sits on the same line as the links */
 .sb__logo {
   display: flex;
   align-items: center;
@@ -240,7 +225,6 @@ const css = `
   border-color: var(--sb-blue-border);
 }
 
-/* search grows to fill the space up to Get App */
 .sb__search {
   display: flex;
   align-items: center;
@@ -278,7 +262,6 @@ const css = `
   color: var(--sb-text);
 }
 
-/* right cluster */
 .sb__right {
   display: flex;
   align-items: center;
@@ -286,7 +269,6 @@ const css = `
   flex-shrink: 0;
 }
 
-.sb__app,
 .sb__balance {
   display: inline-flex;
   align-items: center;
@@ -296,34 +278,22 @@ const css = `
   background: var(--sb-surface);
   border: 1px solid var(--sb-border);
   border-radius: 8px;
-  color: var(--sb-text);
+  color: var(--sb-text-strong);
   font-size: 13px;
-  font-weight: 500;
-  font-family: inherit;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   text-decoration: none;
-  cursor: pointer;
   white-space: nowrap;
   transition: border-color 0.15s, color 0.15s;
 }
-.sb__app svg,
 .sb__balance svg {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
-}
-.sb__app:hover,
-.sb__balance:hover {
-  color: var(--sb-text-strong);
-  border-color: #2f3a5c;
-}
-
-.sb__balance {
-  color: var(--sb-text-strong);
-  font-weight: 600;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-.sb__balance svg {
   color: var(--sb-blue);
+}
+.sb__balance:hover {
+  border-color: #2f3a5c;
 }
 
 .sb__icon {
@@ -381,13 +351,12 @@ const css = `
   display: none;
 }
 
-/* ---------- Drawer (hidden on desktop) ---------- */
+/* ---------- Drawer ---------- */
 .sb-drawer,
 .sb-overlay {
   display: none;
 }
 
-/* ---------- Step 1: slightly tighter on large laptops ---------- */
 @media (max-width: 1560px) {
   .sb {
     gap: 16px;
@@ -398,7 +367,6 @@ const css = `
   }
 }
 
-/* ---------- Step 2: standard laptops ---------- */
 @media (max-width: 1440px) {
   .sb {
     gap: 12px;
@@ -417,27 +385,17 @@ const css = `
   .sb__right {
     gap: 6px;
   }
-  .sb__app,
   .sb__balance {
     padding: 0 12px;
   }
 }
 
-/* ---------- Step 3: Get App becomes icon only ---------- */
 @media (max-width: 1300px) {
   .sb__link {
     padding: 0 8px;
   }
-  .sb__app {
-    font-size: 0;
-    gap: 0;
-    padding: 0;
-    width: 36px;
-    justify-content: center;
-  }
 }
 
-/* ---------- Mobile / tablet ---------- */
 @media (max-width: 1180px) {
   .sb,
   .sb-drawer,
@@ -453,7 +411,6 @@ const css = `
 
   .sb__links,
   .sb__search,
-  .sb__app,
   .sb__balance {
     display: none;
   }
@@ -622,40 +579,6 @@ const css = `
   .sb-drawer__search input::placeholder {
     color: var(--sb-text);
   }
-
-  .sb-drawer__stores {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .sb-drawer__store {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    height: 48px;
-    padding: 0 14px;
-    background: #050912;
-    border: 1px solid #2a3350;
-    border-radius: 10px;
-    color: var(--sb-text-strong);
-    font-family: inherit;
-    text-align: left;
-    cursor: pointer;
-  }
-  .sb-drawer__store span {
-    display: flex;
-    flex-direction: column;
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.15;
-  }
-  .sb-drawer__store small {
-    font-size: 9px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--sb-text);
-  }
 }
 
 @media (max-width: 380px) {
@@ -673,7 +596,7 @@ const css = `
 /* ------------------------------------------------------------------
    Component
 ------------------------------------------------------------------- */
-export default function Sidebar({ onGetApp }) {
+export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -740,6 +663,29 @@ export default function Sidebar({ onGetApp }) {
     };
   }, []);
 
+  // Live-update balance whenever a bot trade / start / stop fires.
+  // Bots dispatch: new CustomEvent("balance-update", { detail: { delta } })
+  // AFTER the corresponding supabase RPC has committed, so refetching
+  // profiles.balance returns the authoritative value. Refetching (rather
+  // than applying the delta) avoids double-counting against the realtime
+  // subscription above.
+  useEffect(() => {
+    if (!userId) return;
+
+    async function refetchBalance() {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("balance")
+        .eq("id", userId)
+        .single();
+      if (!error) setBalance(Number(data?.balance) || 0);
+    }
+
+    const handler = () => refetchBalance();
+    window.addEventListener("balance-update", handler);
+    return () => window.removeEventListener("balance-update", handler);
+  }, [userId]);
+
   // unread notification count for the bell badge (refreshes on page change)
   useEffect(() => {
     if (!userId) return;
@@ -794,12 +740,6 @@ export default function Sidebar({ onGetApp }) {
     navigate(q ? `/markets?q=${encodeURIComponent(q)}` : "/markets");
   }
 
-  function handleGetApp() {
-    setMenuOpen(false);
-    if (onGetApp) onGetApp();
-    else navigate("/get-app");
-  }
-
   const balanceText = balance === null ? "…" : `$${balance.toFixed(2)}`;
   const linkClass = ({ isActive }) => `sb__link ${isActive ? "is-active" : ""}`;
   const drawerLinkClass = ({ isActive }) =>
@@ -835,16 +775,6 @@ export default function Sidebar({ onGetApp }) {
         </form>
 
         <div className="sb__right">
-          <button
-            className="sb__app"
-            onClick={handleGetApp}
-            aria-label="Get App"
-            type="button"
-          >
-            <Svg size={16}>{ICONS.download}</Svg>
-            <span>Get App</span>
-          </button>
-
           <Link to="/deposit" className="sb__balance" title="Available balance">
             <Svg size={16}>{ICONS.wallet}</Svg>
             <span>{balanceText}</span>
@@ -953,33 +883,6 @@ export default function Sidebar({ onGetApp }) {
             aria-label="Search markets"
           />
         </form>
-
-        <div className="sb-drawer__divider" />
-
-        <div className="sb-drawer__stores">
-          <button
-            className="sb-drawer__store"
-            onClick={handleGetApp}
-            type="button"
-          >
-            <Svg size={22}>{ICONS.download}</Svg>
-            <span>
-              <small>Download on the</small>
-              App Store
-            </span>
-          </button>
-          <button
-            className="sb-drawer__store"
-            onClick={handleGetApp}
-            type="button"
-          >
-            <Svg size={22}>{ICONS.download}</Svg>
-            <span>
-              <small>Get it on</small>
-              Google Play
-            </span>
-          </button>
-        </div>
       </aside>
     </>
   );
