@@ -121,6 +121,9 @@ const css = `
 }
 .vf__input:focus { border-color: var(--blue-border); }
 .vf__input::placeholder { color: var(--text); }
+.vf__checks { margin: 0 0 24px; padding: 0; list-style: none; text-align: left; font-size: 12.5px; line-height: 1; }
+.vf__checks li { display: flex; align-items: center; gap: 10px; height: 24px; }
+.vf__checks li::before { content: "✓"; font-size: 13px; color: var(--green); }
 .vf__shot {
   position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
   width: 100%; max-width: 382px; height: 216px; margin: 0 auto 24px; padding: 20px; text-align: center; cursor: pointer;
@@ -197,7 +200,7 @@ function Icon({ children }) {
   );
 }
 
-function CaptureBox({ id, file, hint, onPick }) {
+function CaptureBox({ id, file, hint, onPick, live }) {
   const [preview, setPreview] = useState(null);
 
   useEffect(() => {
@@ -223,7 +226,8 @@ function CaptureBox({ id, file, hint, onPick }) {
       <input
         id={id}
         type="file"
-        accept="image/jpeg,image/png,image/webp,application/pdf"
+        accept={live ? "image/*" : "image/jpeg,image/png,image/webp,application/pdf"}
+        {...(live ? { capture: "user" } : {})}
         onChange={(e) => onPick(e.target.files?.[0] || null)}
       />
     </label>
@@ -364,9 +368,15 @@ export default function Verify() {
       set: setBack,
     },
     selfie: {
-      title: "Take a Selfie",
-      sub: `Hold your ${docType.label} next to your face in good lighting`,
-      hint: "Your face and the ID must both be clear",
+      title: "Take a Live Selfie",
+      sub: "Look directly at the camera in a well-lit area",
+      hint: "Front-facing camera will open automatically",
+      tips: [
+        "Remove sunglasses or hats",
+        "Ensure your full face is visible",
+        "Use good lighting — avoid strong backlighting",
+      ],
+      live: true,
       file: selfie,
       set: setSelfie,
     },
@@ -497,7 +507,14 @@ export default function Verify() {
           <div className="vf__choose">
             <h1>{cap.title}</h1>
             <p className="vf__sub">{cap.sub}</p>
-            <CaptureBox id={`vf-${step}`} file={cap.file} hint={cap.hint} onPick={pick(cap.set)} />
+            {cap.tips && (
+              <ul className="vf__checks">
+                {cap.tips.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+            )}
+            <CaptureBox id={`vf-${step}`} file={cap.file} hint={cap.hint} live={cap.live} onPick={pick(cap.set)} />
             <button className="vf__go" type="button" disabled={!cap.file} onClick={goNext}>
               Continue
               <Icon>{ICON_NEXT}</Icon>
