@@ -3,17 +3,19 @@ import { supabase } from "../supabaseClient";
 
 const css = `
 .pf {
-  --bg: #000;
-  --border: #242424;
-  --muted: #a1a1aa;
-  --strong: #fff;
-  --green: #22e58b;
-  --green-bg: rgba(34, 229, 139, .14);
-  --green-border: rgba(34, 229, 139, .35);
-  --blue: #5b9bff;
-  --blue-bg: rgba(91, 155, 255, .14);
-  --blue-border: rgba(91, 155, 255, .35);
-  --red: #ff4d5e;
+  --bg: #0a0e1a;
+  --surface: #121a2e;
+  --panel: #0f1629;
+  --border: #1f2842;
+  --muted: #8a93b3;
+  --strong: #f2f4ff;
+  --green: #1fd18b;
+  --green-bg: color-mix(in srgb, var(--green) 14%, transparent);
+  --green-border: color-mix(in srgb, var(--green) 35%, transparent);
+  --blue: var(--accent, #5b6ef5);
+  --blue-bg: color-mix(in srgb, var(--blue) 12%, transparent);
+  --blue-border: color-mix(in srgb, var(--blue) 28%, transparent);
+  --red: #ff3b4e;
   max-width: 640px;
   margin: 0 auto;
   padding: 88px 20px 56px;
@@ -26,8 +28,8 @@ const css = `
 .pf__sub { margin: 6px 0 24px; font-size: 14.5px; color: var(--muted); }
 
 .pf__card {
-  margin-bottom: 24px; padding: 24px 24px 12px;
-  background: transparent; border: 1px solid var(--border); border-radius: 12px;
+  margin-bottom: 24px; padding: 28px 28px 14px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
 }
 .pf__head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
 .pf__icon {
@@ -44,7 +46,7 @@ const css = `
   margin-top: 6px; color: var(--muted); background: none; border: 0; border-radius: 8px; cursor: pointer;
   transition: color .15s, background .15s;
 }
-.pf__edit:hover { color: var(--strong); background: #1c1c1c; }
+.pf__edit:hover { color: var(--strong); background: var(--panel); }
 
 .pf__row {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
@@ -59,34 +61,34 @@ const css = `
   font-weight: 400; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .pf__badge {
-  padding: 5px 10px; font-size: 12.5px; font-weight: 500; color: #b4b4b4;
-  background: #181818; border: 1px solid #2a2a2a; border-radius: 4px;
+  padding: 5px 10px; font-size: 12.5px; font-weight: 500; color: var(--muted);
+  background: var(--panel); border: 1px solid var(--border); border-radius: 4px;
 }
 .pf__badge--ok { color: var(--green); background: var(--green-bg); border-color: var(--green-border); }
 
 .pf__input {
   width: 100%; max-width: 260px; height: 38px; padding: 0 12px; font-family: inherit; font-size: 14px;
-  text-align: right; color: var(--strong); background: #0a0a0a; border: 1px solid var(--border);
+  text-align: right; color: var(--strong); background: var(--bg); border: 1px solid var(--border);
   border-radius: 8px; outline: none; transition: border-color .15s;
 }
 .pf__input:focus { border-color: var(--blue-border); }
 .pf__input:disabled { opacity: .55; cursor: not-allowed; }
-.pf__input::placeholder { color: #5b5b63; }
+.pf__input::placeholder { color: #566086; }
 
 .pf__actions { display: flex; gap: 10px; margin-top: 16px; }
 .pf__btn {
   flex: 1; height: 42px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
-  color: #000; background: var(--green); border: 1px solid var(--green); border-radius: 8px;
+  color: #06281c; background: var(--green); border: 1px solid var(--green); border-radius: 8px;
   transition: opacity .15s;
 }
 .pf__btn:hover { opacity: .9; }
 .pf__btn:disabled { opacity: .5; cursor: not-allowed; }
 .pf__btn--ghost { color: var(--strong); background: transparent; border-color: var(--border); }
-.pf__btn--ghost:hover { background: #1a1a1a; opacity: 1; }
+.pf__btn--ghost:hover { background: var(--panel); opacity: 1; }
 
 .pf__msg { margin-top: 14px; padding: 10px 12px; font-size: 13px; border-radius: 8px; border: 1px solid; }
 .pf__msg--ok { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
-.pf__msg--err { color: var(--red); border-color: rgba(255, 77, 94, .35); background: rgba(255, 77, 94, .1); }
+.pf__msg--err { color: var(--red); border-color: color-mix(in srgb, var(--red) 35%, transparent); background: color-mix(in srgb, var(--red) 10%, transparent); }
 
 
 @media (max-width: 480px) {
