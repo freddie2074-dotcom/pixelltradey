@@ -36,7 +36,7 @@ const css = `
 /* ---------- top bar ---------- */
 .vf__bar {
   display: flex; align-items: center; gap: 14px; margin-bottom: 16px; padding-bottom: 14px;
-  border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text);
+  font-size: 14px; color: var(--text);
 }
 .vf__back {
   display: grid; place-items: center; width: 34px; height: 34px; padding: 0; cursor: pointer;
