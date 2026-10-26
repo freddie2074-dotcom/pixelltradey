@@ -5,9 +5,9 @@ import { supabase } from "../supabaseClient";
 const BUCKET = "kyc";
 const MAX_MB = 5;
 const DOC_TYPES = [
-  { id: "passport", label: "Passport", icon: "📕", back: false },
-  { id: "national_id", label: "National ID Card", icon: "🪪", back: true },
-  { id: "driver_license", label: "Driver's License", icon: "🚗", back: true },
+  { id: "passport", label: "Passport", back: false },
+  { id: "national_id", label: "National ID Card", back: true },
+  { id: "driver_license", label: "Driver's License", back: true },
 ];
 
 const css = `
@@ -90,7 +90,8 @@ const css = `
 .vf__opt:hover, .vf__opt:focus-visible, .vf__opt.is-on {
   color: var(--strong); background: var(--blue-bg); border-color: var(--blue); outline: none;
 }
-.vf__opt-ic { flex-shrink: 0; width: 28px; font-size: 22px; line-height: 1; text-align: center; }
+.vf__opt-ic { flex-shrink: 0; display: grid; place-items: center; width: 28px; color: var(--blue); }
+.vf__opt .vf__opt-ic svg { width: 24px; height: 24px; }
 .vf__opt-label { flex: 1; min-width: 0; }
 .vf__opt svg { flex-shrink: 0; width: 16px; height: 16px; }
 
@@ -235,6 +236,29 @@ const ICON_CAMERA = (
 );
 const ICON_BACK = <path d="M19 12H5M12 19l-7-7 7-7" />;
 const ICON_NEXT = <path d="m9 6 6 6-6 6" />;
+const ICON_PASSPORT = (
+  <>
+    <rect x="5" y="2.5" width="14" height="19" rx="2" />
+    <circle cx="12" cy="10" r="3.5" />
+    <path d="M8.5 17h7" />
+  </>
+);
+const ICON_ID = (
+  <>
+    <rect x="2" y="5" width="20" height="14" rx="2" />
+    <circle cx="9" cy="11" r="2" />
+    <path d="M6.2 16a3 3 0 0 1 5.6 0M15 10h3M15 14h3" />
+  </>
+);
+const ICON_CAR = (
+  <>
+    <path d="M19 17h2a1 1 0 0 0 1-1v-3a2 2 0 0 0-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3A3 3 0 0 0 12 7H5a1.5 1.5 0 0 0-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4a1 1 0 0 0 1 1h2" />
+    <circle cx="7" cy="17" r="2" />
+    <path d="M9 17h6" />
+    <circle cx="17" cy="17" r="2" />
+  </>
+);
+const DOC_ICONS = { passport: ICON_PASSPORT, national_id: ICON_ID, driver_license: ICON_CAR };
 
 function Icon({ children }) {
   return (
@@ -560,7 +584,7 @@ export default function Verify() {
                   setStep("front");
                 }}
               >
-                <span className="vf__opt-ic" aria-hidden="true">{t.icon}</span>
+                <span className="vf__opt-ic" aria-hidden="true"><Icon>{DOC_ICONS[t.id]}</Icon></span>
                 <span className="vf__opt-label">{t.label}</span>
                 <Icon>{ICON_NEXT}</Icon>
               </button>
