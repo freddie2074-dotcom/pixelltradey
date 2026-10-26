@@ -5,9 +5,9 @@ import { supabase } from "../supabaseClient";
 const BUCKET = "kyc";
 const MAX_MB = 5;
 const DOC_TYPES = [
-  { id: "national_id", label: "National ID", back: true },
-  { id: "passport", label: "Passport", back: false },
-  { id: "driver_license", label: "Driver's license", back: true },
+  { id: "passport", label: "Passport", icon: "📕", back: false },
+  { id: "national_id", label: "National ID Card", icon: "🪪", back: true },
+  { id: "driver_license", label: "Driver's License", icon: "🚗", back: true },
 ];
 
 const css = `
@@ -76,6 +76,23 @@ const css = `
 }
 .vf__start:hover { opacity: .9; }
 .vf__start svg { width: 16px; height: 16px; }
+
+/* ---------- choose document type ---------- */
+.vf__choose { max-width: 448px; margin: 40px auto 0; text-align: center; }
+.vf__choose h1 { margin: 0 0 10px; font-size: 22px; line-height: 1.2; }
+.vf__choose .vf__sub { margin: 0 0 30px; font-size: 14px; }
+.vf__opt {
+  display: flex; align-items: center; gap: 16px; width: 100%; height: 66px; margin-bottom: 12px; padding: 0 20px;
+  font-family: inherit; font-size: 15px; font-weight: 500; text-align: left; cursor: pointer;
+  color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.vf__opt:hover, .vf__opt:focus-visible, .vf__opt.is-on {
+  color: var(--strong); background: var(--blue-bg); border-color: var(--blue); outline: none;
+}
+.vf__opt-ic { flex-shrink: 0; width: 28px; font-size: 22px; line-height: 1; text-align: center; }
+.vf__opt-label { flex: 1; min-width: 0; }
+.vf__opt svg { flex-shrink: 0; width: 16px; height: 16px; }
 
 /* ---------- cards + form ---------- */
 .vf__card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
@@ -212,7 +229,7 @@ export default function Verify() {
   const [user, setUser] = useState(null);
   const [record, setRecord] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [step, setStep] = useState("intro"); // "intro" | "form"
+  const [step, setStep] = useState("intro"); // "intro" | "type" | "details"
 
   const [docType, setDocType] = useState(DOC_TYPES[0]);
   const [fullName, setFullName] = useState("");
@@ -317,7 +334,8 @@ export default function Verify() {
   const showIntro = showForm && step === "intro";
 
   function goBack() {
-    if (showForm && step === "form") setStep("intro");
+    if (showForm && step === "details") setStep("type");
+    else if (showForm && step === "type") setStep("intro");
     else navigate(-1);
   }
 
@@ -411,17 +429,40 @@ export default function Verify() {
               </p>
             </div>
 
-            <button className="vf__start" type="button" onClick={() => setStep("form")}>
+            <button className="vf__start" type="button" onClick={() => setStep("type")}>
               Start Verification
               <Icon>{ICON_NEXT}</Icon>
             </button>
           </div>
         )}
 
-        {showForm && step === "form" && (
+        {showForm && step === "type" && (
+          <div className="vf__choose">
+            <h1>Choose Document Type</h1>
+            <p className="vf__sub">Select the type of ID you'll be using</p>
+            {DOC_TYPES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={`vf__opt ${t.id === docType.id ? "is-on" : ""}`}
+                onClick={() => {
+                  setDocType(t);
+                  if (!t.back) setBack(null);
+                  setStep("details");
+                }}
+              >
+                <span className="vf__opt-ic" aria-hidden="true">{t.icon}</span>
+                <span className="vf__opt-label">{t.label}</span>
+                <Icon>{ICON_NEXT}</Icon>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {showForm && step === "details" && (
           <>
             <h1>Verify your identity</h1>
-            <p className="vf__sub">Upload a government-issued ID and a selfie to unlock your full account.</p>
+            <p className="vf__sub">Upload your {docType.label} and a selfie to unlock your full account.</p>
 
             <form className="vf__card" onSubmit={submit}>
               <h2>Your details</h2>
@@ -433,25 +474,6 @@ export default function Verify() {
                 <div className="vf__field">
                   <label className="vf__label" htmlFor="vf-country">Country of issue</label>
                   <input id="vf-country" className="vf__input" value={country} onChange={(e) => setCountry(e.target.value)} autoComplete="country-name" />
-                </div>
-              </div>
-
-              <div className="vf__field">
-                <span className="vf__label">Document type</span>
-                <div className="vf__types">
-                  {DOC_TYPES.map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      className={`vf__type ${t.id === docType.id ? "is-on" : ""}`}
-                      onClick={() => {
-                        setDocType(t);
-                        if (!t.back) setBack(null);
-                      }}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
                 </div>
               </div>
 
