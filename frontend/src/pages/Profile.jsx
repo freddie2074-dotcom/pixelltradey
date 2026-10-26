@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 
 const css = `
 .pf {
   --bg: #000;
-  --card: #111;
   --border: #242424;
   --muted: #a1a1aa;
   --strong: #fff;
@@ -29,7 +27,7 @@ const css = `
 
 .pf__card {
   margin-bottom: 24px; padding: 24px 24px 12px;
-  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  background: transparent; border: 1px solid var(--border); border-radius: 12px;
 }
 .pf__head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
 .pf__icon {
@@ -90,14 +88,6 @@ const css = `
 .pf__msg--ok { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
 .pf__msg--err { color: var(--red); border-color: rgba(255, 77, 94, .35); background: rgba(255, 77, 94, .1); }
 
-.pf__links { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 6px; }
-.pf__link {
-  display: inline-flex; align-items: center; height: 36px; padding: 0 14px; font-family: inherit;
-  font-size: 13px; font-weight: 500; color: var(--strong); text-decoration: none; cursor: pointer;
-  background: #0a0a0a; border: 1px solid var(--border); border-radius: 8px; transition: border-color .15s;
-}
-.pf__link:hover { border-color: #3a3a3a; }
-.pf__link--red { color: var(--red); }
 
 @media (max-width: 480px) {
   .pf { padding: 76px 14px 40px; }
@@ -122,9 +112,6 @@ const I = {
   shield: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
   ),
-  lock: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
-  ),
   pencil: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.8 2.8 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5z" /></svg>
   ),
@@ -133,9 +120,6 @@ const I = {
   ),
   shieldLg: (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-  ),
-  lockLg: (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
   ),
 };
 
@@ -157,7 +141,6 @@ function Row({ icon, label, children }) {
 }
 
 export default function Profile() {
-  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [first, setFirst] = useState("");
@@ -167,11 +150,6 @@ export default function Profile() {
   const [editing, setEditing] = useState(false);
   const [savingInfo, setSavingInfo] = useState(false);
   const [infoMsg, setInfoMsg] = useState(null);
-
-  const [pw, setPw] = useState("");
-  const [pw2, setPw2] = useState("");
-  const [savingPw, setSavingPw] = useState(false);
-  const [pwMsg, setPwMsg] = useState(null);
 
   function fillFrom(data, u) {
     const n = splitName(data?.name || u?.user_metadata?.full_name || "");
@@ -230,36 +208,6 @@ export default function Profile() {
     } finally {
       setSavingInfo(false);
     }
-  }
-
-  async function changePassword(e) {
-    e.preventDefault();
-    setPwMsg(null);
-    if (pw.length < 8) {
-      setPwMsg({ type: "err", text: "Use at least 8 characters." });
-      return;
-    }
-    if (pw !== pw2) {
-      setPwMsg({ type: "err", text: "The two passwords don't match." });
-      return;
-    }
-    setSavingPw(true);
-    try {
-      const { error } = await supabase.auth.updateUser({ password: pw });
-      if (error) throw error;
-      setPw("");
-      setPw2("");
-      setPwMsg({ type: "ok", text: "Password updated." });
-    } catch (err) {
-      setPwMsg({ type: "err", text: err.message || "Could not update your password." });
-    } finally {
-      setSavingPw(false);
-    }
-  }
-
-  async function signOut() {
-    await supabase.auth.signOut();
-    navigate("/");
   }
 
   // Adjust these field names if your profiles table uses a different column for verification.
@@ -347,42 +295,6 @@ export default function Profile() {
           <Row icon={I.user} label="User ID">
             <span className="pf__val pf__val--mono" title={user?.id}>{user?.id || dash}</span>
           </Row>
-        </div>
-
-        {/* Security */}
-        <form className="pf__card" onSubmit={changePassword}>
-          <div className="pf__head">
-            <div className="pf__icon pf__icon--blue">{I.lockLg}</div>
-            <div className="pf__titles">
-              <h2>Change Password</h2>
-              <p>Use at least 8 characters</p>
-            </div>
-          </div>
-
-          <Row icon={I.lock} label="New password">
-            <input className="pf__input" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="New password" aria-label="New password" />
-          </Row>
-          <Row icon={I.lock} label="Confirm">
-            <input className="pf__input" type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} placeholder="Confirm password" aria-label="Confirm new password" />
-          </Row>
-
-          <div className="pf__actions">
-            <button className="pf__btn" type="submit" disabled={savingPw}>
-              {savingPw ? "Updating..." : "Update password"}
-            </button>
-          </div>
-          {pwMsg && <div className={`pf__msg pf__msg--${pwMsg.type}`}>{pwMsg.text}</div>}
-        </form>
-
-        {/* Shortcuts */}
-        <div className="pf__card">
-          <div className="pf__links">
-            <Link className="pf__link" to="/deposit">Deposit</Link>
-            <Link className="pf__link" to="/withdraw">Withdraw</Link>
-            <Link className="pf__link" to="/notifications">Notifications</Link>
-            <Link className="pf__link" to="/verify">Verify identity</Link>
-            <button className="pf__link pf__link--red" type="button" onClick={signOut}>Sign out</button>
-          </div>
         </div>
       </div>
     </>
