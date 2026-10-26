@@ -5,8 +5,8 @@ import { supabase } from "../supabaseClient";
    EDIT THIS: your real receiving addresses.
    USDT is accepted on Tron (TRC20). BTC on the Bitcoin network.
 ------------------------------------------------------------------- */
-const DEPOSIT_ADDRESS_USDT = "YOUR_USDT_TRC20_ADDRESS";
-const DEPOSIT_ADDRESS_BTC = "YOUR_BTC_ADDRESS";
+const DEPOSIT_ADDRESS_USDT = "ТPJjgnPuhg3GzQdGhJUwFYsAKg6W8pkTdk";
+const DEPOSIT_ADDRESS_BTC = "121HaiJWC24Na5kSgcUrYFhGTKqAvSvx2U";
 
 const MIN = 50;
 const CHIPS = [50, 100, 250, 500];
