@@ -389,6 +389,7 @@ export default function Withdraw() {
       if (!user) throw new Error("You need to be signed in.");
       const { error } = await supabase.from("withdrawals").insert({
         user_id: user.id,
+        method: `${coin.id} (${network.id})`, // keeps the Admin table working
         asset: coin.id,
         network: network.id,
         address: address.trim(),
@@ -548,7 +549,7 @@ export default function Withdraw() {
                       <div className="wd-history__amt">
                         {money(w.amount)}{" "}
                         <span>
-                          {w.asset}
+                          {w.asset || w.method}
                           {w.network ? ` · ${w.network}` : ""}
                         </span>
                       </div>
