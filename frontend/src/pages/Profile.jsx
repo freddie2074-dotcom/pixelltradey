@@ -4,32 +4,35 @@ import { supabase } from "../supabaseClient";
 
 const css = `
 .pf {
-  --bg: #000;
-  --card: #111;
-  --border: #242424;
-  --muted: #a1a1aa;
-  --strong: #fff;
+  --bg: #000000;
+  --card: #101010;
+  --border: #262626;
+  --muted: #a3a3a3;
+  --strong: #ffffff;
   --green: #22e58b;
-  --green-bg: rgba(34, 229, 139, .14);
-  --green-border: rgba(34, 229, 139, .35);
+  --green-bg: #0b3b26;
+  --green-border: #17663f;
   --blue: #5b9bff;
-  --blue-bg: rgba(91, 155, 255, .14);
-  --blue-border: rgba(91, 155, 255, .35);
+  --blue-bg: #15243f;
+  --blue-border: #27427a;
   --red: #ff4d5e;
-  max-width: 640px;
-  margin: 0 auto;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
   padding: 88px 20px 56px;
+  background: #000000;
   color: var(--muted);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   box-sizing: border-box;
 }
+.pf__wrap { max-width: 640px; margin: 0 auto; }
 .pf *, .pf *::before, .pf *::after { box-sizing: border-box; }
-.pf h1 { margin: 0; font-size: 26px; font-weight: 700; color: var(--strong); }
-.pf__sub { margin: 6px 0 24px; font-size: 15px; color: var(--muted); }
+.pf h1 { margin: 0; font-size: 24px; line-height: 1.2; font-weight: 700; color: var(--strong); }
+.pf__sub { margin: 6px 0 24px; font-size: 14.5px; color: var(--muted); }
 
 .pf__card {
-  margin-bottom: 24px; padding: 24px;
-  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  margin-bottom: 24px; padding: 24px 24px 12px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
 }
 .pf__head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
 .pf__icon {
@@ -38,7 +41,6 @@ const css = `
 }
 .pf__icon--green { color: var(--green); background: var(--green-bg); border-color: var(--green-border); }
 .pf__icon--blue { color: var(--blue); background: var(--blue-bg); border-color: var(--blue-border); }
-.pf__icon--red { color: var(--red); background: rgba(255, 77, 94, .12); border-color: rgba(255, 77, 94, .35); }
 .pf__titles { flex: 1; min-width: 0; padding-top: 2px; }
 .pf__titles h2 { margin: 0; font-size: 17px; font-weight: 600; color: var(--strong); }
 .pf__titles p { margin: 3px 0 0; font-size: 14px; color: var(--muted); }
@@ -51,7 +53,7 @@ const css = `
 
 .pf__row {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  min-height: 60px; border-bottom: 1px solid var(--border); font-size: 14.5px;
+  min-height: 61px; border-bottom: 1px solid var(--border); font-size: 14.5px;
 }
 .pf__row:last-child { border-bottom: 0; }
 .pf__key { display: flex; align-items: center; gap: 10px; flex-shrink: 0; color: var(--muted); }
@@ -62,8 +64,8 @@ const css = `
   font-weight: 400; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .pf__badge {
-  padding: 5px 10px; font-size: 12.5px; font-weight: 500; color: var(--muted);
-  background: #181818; border: 1px solid var(--border); border-radius: 6px;
+  padding: 5px 10px; font-size: 12.5px; font-weight: 500; color: #b4b4b4;
+  background: #181818; border: 1px solid #2a2a2a; border-radius: 4px;
 }
 .pf__badge--ok { color: var(--green); background: var(--green-bg); border-color: var(--green-border); }
 
@@ -258,6 +260,14 @@ export default function Profile() {
     }
   }
 
+  useEffect(() => {
+    const prev = document.body.style.background;
+    document.body.style.background = "#000000";
+    return () => {
+      document.body.style.background = prev;
+    };
+  }, []);
+
   async function signOut() {
     await supabase.auth.signOut();
     navigate("/");
@@ -271,6 +281,7 @@ export default function Profile() {
     <>
       <style>{css}</style>
       <div className="pf">
+        <div className="pf__wrap">
         <h1>Profile</h1>
         <p className="pf__sub">Manage your account information</p>
 
@@ -384,6 +395,7 @@ export default function Profile() {
             <Link className="pf__link" to="/verify">Verify identity</Link>
             <button className="pf__link pf__link--red" type="button" onClick={signOut}>Sign out</button>
           </div>
+        </div>
         </div>
       </div>
     </>
