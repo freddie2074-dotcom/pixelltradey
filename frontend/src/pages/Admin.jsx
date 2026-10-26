@@ -7,7 +7,7 @@ const ADMIN_UID = "935b6c78-7da2-4111-bdd5-f4d4a4826699";
 const NAV_ITEMS = [
   { key: "Users", label: "Users", icon: "👥" },
   { key: "Chats", label: "Chats", icon: "💬" },
-  { key: "Balances", label: "Balances", icon: "💰" },
+  { key: "Deposits", label: "Deposits", icon: "💰" },
   { key: "Withdrawals", label: "Withdrawals", icon: "🏦" },
 ];
 
@@ -24,17 +24,24 @@ function formatLastLogin(value) {
 // AI is "on" unless switched off or a live agent has taken the chat
 const isAiOn = (c) => c.ai_enabled !== false && c.mode !== "human";
 
+// A pending deposit past its expiry time counts as expired
+const depositStatus = (d) =>
+  d.status === "pending" &&
+  d.expires_at &&
+  new Date(d.expires_at).getTime() < Date.now()
+    ? "expired"
+    : d.status;
+
 export default function Admin() {
   const [authorized, setAuthorized] = useState(false);
   const [activeTab, setActiveTab] = useState("Users");
   const [users, setUsers] = useState([]);
   const [withdrawals, setWithdrawals] = useState([]);
+  const [deposits, setDeposits] = useState([]);
   const [conversations, setConversations] = useState([]);
   const [selectedConvo, setSelectedConvo] = useState(null);
   const [replyText, setReplyText] = useState("");
   const [search, setSearch] = useState("");
-  const [editingBalanceId, setEditingBalanceId] = useState(null);
-  const [balanceDraft, setBalanceDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -58,6 +65,15 @@ export default function Admin() {
       .order("created_at", { ascending: false });
     if (error) throw error;
     setWithdrawals(data || []);
+  }
+
+  async function loadDeposits() {
+    const { data, error } = await supabase
+      .from("deposits")
+      .select("*, profiles(email)")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    setDeposits(data || []);
   }
 
   async function loadConversations() {
@@ -87,7 +103,12 @@ export default function Admin() {
       }
       setAuthorized(true);
 
-      await Promise.all([loadUsers(), loadWithdrawals(), loadConversations()]);
+      await Promise.all([
+        loadUsers(),
+        loadWithdrawals(),
+        loadDeposits(),
+        loadConversations(),
+      ]);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -139,6 +160,40 @@ export default function Admin() {
     };
   }, [authorized]);
 
+  // Live updates: new deposit requests appear without a refresh
+  useEffect(() => {
+    if (!authorized) return;
+    const channel = supabase
+      .channel("admin-deposits")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "deposits" },
+        () => {
+          loadDeposits().catch((e) => setError(e.message));
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [authorized]);
+
+  // Move stale pending deposits to "expired" and tell the user
+  useEffect(() => {
+    if (!authorized) return;
+    async function sweep() {
+      const stale = deposits.filter(
+        (d) => d.status === "pending" && depositStatus(d) === "expired",
+      );
+      for (const d of stale) {
+        await expireDeposit(d, true);
+      }
+    }
+    sweep();
+    const id = setInterval(sweep, 30000);
+    return () => clearInterval(id);
+  }, [authorized, deposits]);
+
   // ---------- Users ----------
   async function toggleUserActive(user) {
     const { error } = await supabase
@@ -151,23 +206,79 @@ export default function Admin() {
     );
   }
 
-  function startEditBalance(user) {
-    setEditingBalanceId(user.id);
-    setBalanceDraft(user.balance.toString());
+  // ---------- Deposits ----------
+  async function notify(userId, type, title, message) {
+    const { error } = await supabase
+      .from("notifications")
+      .insert({ user_id: userId, type, title, message, read: false });
+    if (error) setError(error.message);
   }
 
-  async function saveBalance(id) {
-    const value = Number(balanceDraft);
-    if (isNaN(value) || value < 0) return;
-    const { error } = await supabase
-      .from("profiles")
-      .update({ balance: value })
-      .eq("id", id);
+  async function confirmDeposit(d) {
+    setError("");
+    // Only flips if it's still pending, so it can't be credited twice
+    const { data: changed, error } = await supabase
+      .from("deposits")
+      .update({ status: "completed" })
+      .eq("id", d.id)
+      .eq("status", "pending")
+      .select();
     if (error) return setError(error.message);
+    if (!changed || changed.length === 0) {
+      return setError("This deposit was already handled.");
+    }
+
+    // Read the latest balance so the credit isn't based on stale data
+    const { data: prof, error: profError } = await supabase
+      .from("profiles")
+      .select("balance")
+      .eq("id", d.user_id)
+      .single();
+    if (profError) return setError(profError.message);
+
+    const newBalance = Number(prof?.balance || 0) + Number(d.usd);
+    const { error: balError } = await supabase
+      .from("profiles")
+      .update({ balance: newBalance })
+      .eq("id", d.user_id);
+    if (balError) return setError(balError.message);
+
     setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, balance: value } : u)),
+      prev.map((u) =>
+        u.id === d.user_id ? { ...u, balance: newBalance } : u,
+      ),
     );
-    setEditingBalanceId(null);
+    setDeposits((prev) =>
+      prev.map((x) => (x.id === d.id ? { ...x, status: "completed" } : x)),
+    );
+
+    await notify(
+      d.user_id,
+      "deposit_confirmed",
+      "Deposit confirmed",
+      `Your deposit of $${Number(d.usd).toFixed(2)} (${d.amount} ${d.symbol}) has been confirmed and added to your balance.`,
+    );
+  }
+
+  async function expireDeposit(d, silent = false) {
+    const { data: changed, error } = await supabase
+      .from("deposits")
+      .update({ status: "expired" })
+      .eq("id", d.id)
+      .eq("status", "pending")
+      .select();
+    if (error) return silent ? null : setError(error.message);
+    if (!changed || changed.length === 0) return;
+
+    setDeposits((prev) =>
+      prev.map((x) => (x.id === d.id ? { ...x, status: "expired" } : x)),
+    );
+    await notify(
+      d.user_id,
+      "deposit_expired",
+      "Deposit expired",
+      `Your deposit of $${Number(d.usd).toFixed(2)} (${d.amount} ${d.symbol}) expired before payment was received. Start a new deposit to get a fresh address.`,
+    );
   }
 
   // ---------- Withdrawals ----------
@@ -244,6 +355,9 @@ export default function Admin() {
 
   const activeConvo = conversations.find((c) => c.id === selectedConvo);
   const pendingCount = withdrawals.filter((w) => w.status === "pending").length;
+  const pendingDeposits = deposits.filter(
+    (d) => depositStatus(d) === "pending",
+  ).length;
 
   const filteredUsers = users.filter((u) => {
     const q = search.toLowerCase();
@@ -291,6 +405,9 @@ export default function Admin() {
             >
               <span className="admin-nav-icon">{item.icon}</span>
               {item.label}
+              {item.key === "Deposits" && pendingDeposits > 0 && (
+                <span className="admin-nav-badge">{pendingDeposits}</span>
+              )}
               {item.key === "Withdrawals" && pendingCount > 0 && (
                 <span className="admin-nav-badge">{pendingCount}</span>
               )}
@@ -368,74 +485,85 @@ export default function Admin() {
           </>
         )}
 
-        {activeTab === "Balances" && (
+        {activeTab === "Deposits" && (
           <>
             <div className="admin-content-header">
-              <h1>User Balances</h1>
+              <h1>Deposits</h1>
             </div>
-            <table className="admin-users-table">
-              <thead>
-                <tr>
-                  <th>Email</th>
-                  <th>Balance (USD)</th>
-                  <th>Last Login</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id}>
-                    <td data-label="Email" className="mono">
-                      {u.email}
-                    </td>
-                    <td data-label="Balance (USD)" className="mono">
-                      {editingBalanceId === u.id ? (
-                        <div className="admin-balance-edit">
-                          <input
-                            type="number"
-                            className="admin-inline-input mono"
-                            value={balanceDraft}
-                            onChange={(e) => setBalanceDraft(e.target.value)}
-                            min="0"
-                            step="0.01"
-                          />
-                        </div>
-                      ) : (
-                        <>${Number(u.balance).toFixed(2)}</>
-                      )}
-                    </td>
-                    <td data-label="Last Login" className="mono">
-                      {formatLastLogin(u.last_login)}
-                    </td>
-                    <td>
-                      {editingBalanceId === u.id ? (
-                        <div style={{ display: "flex", gap: 6 }}>
-                          <button
-                            className="admin-action-btn reactivate"
-                            onClick={() => saveBalance(u.id)}
-                          >
-                            Save
-                          </button>
-                          <button
-                            className="admin-action-btn deactivate"
-                            onClick={() => setEditingBalanceId(null)}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          className="admin-action-btn reactivate"
-                          onClick={() => startEditBalance(u)}
-                        >
-                          Edit
-                        </button>
-                      )}
-                    </td>
+            {deposits.length === 0 ? (
+              <p style={{ color: "var(--text-muted)" }}>No deposits yet.</p>
+            ) : (
+              <table className="admin-users-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Coin</th>
+                    <th>Amount (USD)</th>
+                    <th>Crypto Amount</th>
+                    <th>Created</th>
+                    <th>Status</th>
+                    <th>Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {deposits.map((d) => {
+                    const status = depositStatus(d);
+                    return (
+                      <tr key={d.id}>
+                        <td data-label="User" className="mono">
+                          {d.profiles?.email}
+                        </td>
+                        <td data-label="Coin" className="mono">
+                          {d.symbol} · {d.network}
+                        </td>
+                        <td data-label="Amount (USD)" className="mono">
+                          ${Number(d.usd).toFixed(2)}
+                        </td>
+                        <td data-label="Crypto Amount" className="mono">
+                          {d.amount} {d.symbol}
+                        </td>
+                        <td data-label="Created" className="mono">
+                          {formatLastLogin(d.created_at)}
+                        </td>
+                        <td data-label="Status">
+                          <span
+                            className={`admin-status-pill ${
+                              status === "completed"
+                                ? "active"
+                                : status === "expired" || status === "failed"
+                                  ? "inactive"
+                                  : "pending"
+                            }`}
+                          >
+                            {status.toUpperCase()}
+                          </span>
+                        </td>
+                        <td data-label="Action">
+                          {status === "pending" ? (
+                            <div style={{ display: "flex", gap: 6 }}>
+                              <button
+                                className="admin-action-btn reactivate"
+                                onClick={() => confirmDeposit(d)}
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                className="admin-action-btn deactivate"
+                                onClick={() => expireDeposit(d)}
+                              >
+                                Expire
+                              </button>
+                            </div>
+                          ) : (
+                            <span style={{ color: "var(--text-muted)" }}>—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </>
         )}
 
