@@ -510,12 +510,24 @@ export default function Admin() {
   }
 
   // ---------- Withdrawals ----------
+  // Only flips if still pending (no double-deduct). Uses .select() so a silent
+  // RLS/CHECK block becomes a visible error. Notifies the user on success.
   async function updateWithdrawalStatus(w, status) {
-    const { error } = await supabase
+    setError("");
+
+    const { data: changed, error } = await supabase
       .from("withdrawals")
       .update({ status })
-      .eq("id", w.id);
+      .eq("id", w.id)
+      .eq("status", "pending")
+      .select();
+
     if (error) return setError(error.message);
+    if (!changed || changed.length === 0) {
+      return setError(
+        "This withdrawal was already handled, or the database blocked the update (RLS / CHECK constraint). The withdrawal is still pending.",
+      );
+    }
 
     if (status === "completed") {
       const profile = users.find((u) => u.id === w.user_id);
@@ -535,6 +547,15 @@ export default function Admin() {
 
     setWithdrawals((prev) =>
       prev.map((x) => (x.id === w.id ? { ...x, status } : x)),
+    );
+
+    await notify(
+      w.user_id,
+      status === "completed" ? "withdrawal_completed" : "withdrawal_rejected",
+      status === "completed" ? "Withdrawal approved" : "Withdrawal rejected",
+      status === "completed"
+        ? `Your withdrawal of $${Number(w.amount).toFixed(2)} has been approved and processed.`
+        : `Your withdrawal of $${Number(w.amount).toFixed(2)} was rejected. Contact support if you believe this is a mistake.`,
     );
   }
 
