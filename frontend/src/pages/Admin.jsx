@@ -517,7 +517,7 @@ export default function Admin() {
       .eq("id", w.id);
     if (error) return setError(error.message);
 
-    if (status === "approved") {
+    if (status === "completed") {
       const profile = users.find((u) => u.id === w.user_id);
       if (profile) {
         const newBalance = Number(profile.balance) - Number(w.amount);
@@ -854,10 +854,10 @@ export default function Admin() {
                                   type="button"
                                   className="adm__btn adm__btn--ok"
                                   onClick={() =>
-                                    updateWithdrawalStatus(w, "approved")
+                                    updateWithdrawalStatus(w, "completed")
                                   }
                                 >
-                                  Approve
+                                  Confirm
                                 </button>
                                 <button
                                   type="button"
