@@ -26,29 +26,25 @@ const BOT_META = {
 };
 
 /* ------------------------------------------------------------------ */
-/* Palette + shared style tokens (blue accent, dark cards)            */
+/* Palette — blue primary, green/red for data only                    */
 /* ------------------------------------------------------------------ */
 const C = {
   bg: "#0a0e1a",
-  panel: "#121a2e",
-  panelAlt: "#171f38",
   card: "#111",
+  item: "#0f0f0f",
   field: "#151515",
   line: "#1f1f1f",
-  border: "#262f4a",
-  accent: "#5b6ef5",
-  accentSoft: "rgba(91, 110, 245, 0.14)",
-  gain: "#35d0ba",
-  loss: "#ff6b6b",
-  text: "#e7ecfb",
-  textMuted: "#8a93b3",
   dim: "#a3a8a6",
+  text: "#fff",
+  textMuted: "#8a93b3",
+  blue: "#5b6ef5",
+  blueBright: "#60a5fa",
+  blueSoft: "rgba(91, 110, 245, 0.14)",
+  gain: "#22c55e",
+  loss: "#f4525f",
 };
 
 const MONO = "'IBM Plex Mono', Menlo, Consolas, monospace";
-
-const RISK_COLOR = { Low: C.gain, Medium: "#f5c542", High: C.loss };
-const RISK_TONE = { Low: "green", Medium: "amber", High: "red" };
 
 const MIN_CONFIGURE_BALANCE = 5;
 const MIN_AMOUNT = 50;
@@ -56,78 +52,148 @@ const LOG_LINES_SHOWN = 8;
 const COMMENT_INTERVAL_MS = 3000;
 const COMMENT_COLOR = "#3b82f6";
 const BASE_PRICES = { BTC: 97500, ETH: 3400 };
+const RISK_TONE = { Low: "green", Medium: "amber", High: "red" };
 
 /* ------------------------------------------------------------------ */
-/* Style helpers                                                      */
+/* Inline icons                                                       */
 /* ------------------------------------------------------------------ */
-const baseBtn = {
+const svgBase = { fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" };
+
+function BotIcon({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...svgBase}>
+      <path d="M12 8V4H8" />
+      <rect x="4" y="8" width="16" height="12" rx="2" />
+      <path d="M2 14h2" />
+      <path d="M20 14h2" />
+      <path d="M15 13v2" />
+      <path d="M9 13v2" />
+    </svg>
+  );
+}
+function ActivityIcon({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...svgBase}>
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  );
+}
+function PlayIcon({ size = 15 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <polygon points="6 3 20 12 6 21 6 3" />
+    </svg>
+  );
+}
+function SquareIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <rect x="5" y="5" width="14" height="14" rx="1" />
+    </svg>
+  );
+}
+function TrashIcon({ size = 15 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...svgBase}>
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    </svg>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Style tokens                                                       */
+/* ------------------------------------------------------------------ */
+const cardBase = {
+  background: C.card,
+  border: `1px solid ${C.line}`,
+  borderRadius: 16,
+  overflow: "hidden",
+};
+
+const cheadStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 12,
+  padding: 20,
+  borderBottom: `1px solid ${C.line}`,
+  fontSize: 20,
+  fontWeight: 700,
+  letterSpacing: "-0.01em",
+  textTransform: "uppercase",
+  color: C.text,
+};
+
+const itemStyle = {
+  display: "grid",
+  gridTemplateColumns: "52px minmax(0, 1fr) auto",
+  columnGap: 14,
+  rowGap: 14,
+  alignItems: "start",
+  padding: 16,
+  border: `1px solid ${C.line}`,
+  borderRadius: 12,
+  background: C.item,
+};
+
+const icoStyle = {
+  display: "grid",
+  placeItems: "center",
+  width: 48,
+  height: 48,
+  borderRadius: 10,
+  border: "1px solid #202020",
+  background: "#181818",
+  color: "#cfd3d1",
+};
+
+const badgeBase = {
+  padding: "4px 11px",
+  borderRadius: 6,
+  border: "1px solid",
+  fontSize: 12,
+  fontWeight: 500,
+  whiteSpace: "nowrap",
+};
+const badgeTones = {
+  blue: { color: C.blueBright, background: C.blueSoft, borderColor: "rgba(91, 110, 245, 0.5)" },
+  green: { color: C.gain, background: "rgba(34, 197, 94, 0.12)", borderColor: "rgba(34, 197, 94, 0.5)" },
+  red: { color: C.loss, background: "rgba(244, 82, 95, 0.12)", borderColor: "rgba(244, 82, 95, 0.5)" },
+  amber: { color: "#eab308", background: "rgba(234, 179, 8, 0.12)", borderColor: "rgba(234, 179, 8, 0.5)" },
+};
+const badge = (tone) => ({ ...badgeBase, ...(badgeTones[tone] || badgeTones.blue) });
+
+const btnBase = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   gap: 8,
-  padding: "11px 20px",
+  height: 38,
+  padding: "0 18px",
   borderRadius: 8,
+  border: "1px solid transparent",
   fontSize: 14,
   fontWeight: 600,
   fontFamily: "inherit",
   cursor: "pointer",
-  transition: "opacity 0.15s ease",
+  transition: "opacity 0.15s",
 };
-
-const btnVariant = {
-  primary: { background: C.accent, color: "#fff", border: `1px solid ${C.accent}` },
-  outline: { background: "transparent", color: C.text, border: `1px solid ${C.border}` },
-  ghost: { background: "transparent", color: C.textMuted, border: "1px solid transparent" },
-  danger: { background: "transparent", color: C.loss, border: "1px solid transparent" },
+const btnVariants = {
+  primary: { background: C.blue, color: "#fff" },
+  outline: { background: "transparent", color: C.text, border: `1px solid ${C.line}` },
+  danger: { background: "#141414", color: "#d4d8d6", border: "1px solid #262626" },
 };
-
-const btn = (variant, extra = {}) => ({
-  ...baseBtn,
-  ...(btnVariant[variant] || btnVariant.primary),
-  ...extra,
-});
-
-const cardStyle = {
-  background: C.card,
-  border: `1px solid ${C.line}`,
-  borderRadius: 14,
-  padding: 24,
-};
-
-const badgeBase = {
-  display: "inline-block",
-  padding: "4px 11px",
-  borderRadius: 6,
-  fontSize: 12,
-  fontWeight: 500,
-  border: "1px solid",
-  whiteSpace: "nowrap",
-};
-const badgeTones = {
-  green: { color: C.gain, background: "rgba(53, 208, 186, 0.12)", borderColor: "rgba(53, 208, 186, 0.5)" },
-  red: { color: C.loss, background: "rgba(255, 107, 107, 0.12)", borderColor: "rgba(255, 107, 107, 0.5)" },
-  amber: { color: "#eab308", background: "rgba(234, 179, 8, 0.12)", borderColor: "rgba(234, 179, 8, 0.5)" },
-  blue: { color: "#60a5fa", background: C.accentSoft, borderColor: "rgba(91, 110, 245, 0.5)" },
-};
-const badge = (tone) => ({ ...badgeBase, ...(badgeTones[tone] || badgeTones.blue) });
-
-const pill = (state) => ({
-  display: "inline-block",
-  padding: "4px 11px",
-  borderRadius: 999,
-  fontSize: 12,
-  fontWeight: 500,
-  fontFamily: MONO,
-  ...(state === "on"
-    ? { background: "rgba(53, 208, 186, 0.14)", color: C.gain }
-    : { background: "rgba(138, 147, 179, 0.14)", color: C.textMuted }),
-});
+const btn = (variant, extra = {}) => ({ ...btnBase, ...btnVariants[variant], ...extra });
 
 const hoverIn = (e) => { e.currentTarget.style.opacity = "0.9"; };
 const hoverOut = (e) => { e.currentTarget.style.opacity = "1"; };
 
 /* ------------------------------------------------------------------ */
-/* Formatters & helpers                                               */
+/* Helpers                                                            */
 /* ------------------------------------------------------------------ */
 function fmtUsd(n) {
   const v = Number(n) || 0;
@@ -175,7 +241,6 @@ function randomComment(base, price) {
   return templates[Math.floor(Math.random() * templates.length)];
 }
 
-/* Mobile breakpoint hook (inline styles can't do media queries) */
 function useIsNarrow(breakpoint = 640) {
   const [isNarrow, setIsNarrow] = useState(
     typeof window !== "undefined" && window.innerWidth < breakpoint
@@ -189,79 +254,77 @@ function useIsNarrow(breakpoint = 640) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Stat cell                                                          */
+/* ------------------------------------------------------------------ */
+function Stat({ label, value, color }) {
+  return (
+    <div>
+      <div style={{ color: C.dim, fontSize: 11, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+        {label}
+      </div>
+      <div style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, color: color || C.text }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Bot picker                                                         */
 /* ------------------------------------------------------------------ */
 function BotPicker({ bots, onSelect, onClose }) {
-  const isNarrow = useIsNarrow();
+  const isNarrow = useIsNarrow(800);
   return (
-    <div style={{ ...cardStyle, marginBottom: 24 }}>
+    <div style={{ marginBottom: 18, padding: 16, border: `1px solid ${C.line}`, borderRadius: 12, background: C.item }}>
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: 18,
+          marginBottom: 14,
         }}
       >
-        <h3 style={{ margin: 0, fontSize: 16, color: C.text }}>Choose a Bot</h3>
-        <button style={btn("ghost")} onClick={onClose}>
+        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+          Choose a Bot
+        </h4>
+        <button style={btn("outline", { height: 32, padding: "0 14px", fontSize: 13 })} onClick={onClose}>
           Cancel
         </button>
       </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr",
-          gap: 16,
-        }}
-      >
+      <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: 12 }}>
         {Object.entries(BOT_META).map(([botType, meta]) => {
-          const alreadyExists = !!bots[botType];
+          const exists = !!bots[botType];
           return (
             <button
               key={botType}
               type="button"
-              disabled={alreadyExists}
+              disabled={exists}
               onClick={() => onSelect(botType)}
-              onMouseEnter={(e) => {
-                if (!alreadyExists) e.currentTarget.style.borderColor = C.accent;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = C.line;
-              }}
+              onMouseEnter={(e) => { if (!exists) e.currentTarget.style.borderColor = C.blue; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.line; }}
               style={{
-                background: C.field,
+                background: "#0a0a0a",
                 border: `1px solid ${C.line}`,
-                borderRadius: 12,
-                padding: 20,
+                borderRadius: 10,
+                padding: 16,
                 textAlign: "left",
-                cursor: alreadyExists ? "not-allowed" : "pointer",
-                opacity: alreadyExists ? 0.55 : 1,
+                cursor: exists ? "not-allowed" : "pointer",
+                opacity: exists ? 0.55 : 1,
                 fontFamily: "inherit",
                 color: "inherit",
-                transition: "border-color 0.15s ease",
+                transition: "border-color 0.15s",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 8,
-                  marginBottom: 6,
-                }}
-              >
-                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>
                   {meta.icon} {meta.label}
-                </h3>
-                {alreadyExists && <span style={badge("amber")}>configured</span>}
+                </span>
+                {exists && <span style={badge("amber")}>configured</span>}
               </div>
-              <div style={{ color: C.textMuted, fontSize: 13, fontFamily: MONO, marginBottom: 8 }}>
+              <div style={{ color: C.dim, fontSize: 12, fontFamily: MONO, marginBottom: 8 }}>
                 {meta.cadence}
               </div>
-              <p style={{ margin: 0, color: C.textMuted, fontSize: 13, lineHeight: 1.5 }}>
-                {meta.description}
-              </p>
+              <div style={{ color: C.dim, fontSize: 13, lineHeight: 1.5 }}>{meta.description}</div>
             </button>
           );
         })}
@@ -271,7 +334,7 @@ function BotPicker({ bots, onSelect, onClose }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Create-bot config form                                             */
+/* Create-bot config form (styled like a bot item)                    */
 /* ------------------------------------------------------------------ */
 function CreateBotForm({ meta, balance, onCreate, onCancel }) {
   const [amount, setAmount] = useState(100);
@@ -287,26 +350,28 @@ function CreateBotForm({ meta, balance, onCreate, onCancel }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={cardStyle}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 6,
-        }}
-      >
-        <h3 style={{ margin: 0, fontSize: 16, color: C.text }}>
+    <form
+      onSubmit={handleSubmit}
+      style={{
+        padding: 20,
+        border: `1px solid ${C.line}`,
+        borderRadius: 12,
+        background: C.item,
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>
           {meta.icon} {meta.label}
-        </h3>
-        <span style={pill("off")}>not active</span>
+        </h4>
+        <span style={badge("amber")}>not active</span>
       </div>
-      <div style={{ color: C.textMuted, fontSize: 13, fontFamily: MONO, marginBottom: 18 }}>
-        {meta.symbol}
-      </div>
+      <div style={{ color: C.dim, fontSize: 13, fontFamily: MONO }}>{meta.symbol}</div>
 
-      <div style={{ marginBottom: 18 }}>
-        <label style={{ display: "block", fontSize: 13, color: C.textMuted, marginBottom: 6 }}>
+      <div>
+        <label style={{ display: "block", fontSize: 13, color: C.dim, marginBottom: 6 }}>
           Allocation size (USDT)
         </label>
         <input
@@ -318,31 +383,26 @@ function CreateBotForm({ meta, balance, onCreate, onCancel }) {
           autoFocus
           style={{
             width: "100%",
-            padding: "11px 14px",
-            borderRadius: 8,
-            border: `1px solid ${C.border}`,
-            background: C.bg,
+            height: 46,
+            padding: "0 14px",
+            borderRadius: 9,
+            border: `1px solid #222`,
+            background: C.field,
             color: C.text,
-            fontSize: 14,
+            fontSize: 15,
             fontFamily: "inherit",
             outline: "none",
             boxSizing: "border-box",
           }}
         />
-        <p style={{ color: C.textMuted, fontSize: 12, margin: "6px 0 0", textAlign: "left" }}>
-          Min amount: ${MIN_AMOUNT} · Available balance: ${Number(balance || 0).toFixed(2)}
+        <p style={{ color: C.dim, fontSize: 12, margin: "8px 0 0" }}>
+          Min amount: ${MIN_AMOUNT} · Available: ${Number(balance || 0).toFixed(2)}
         </p>
-        {tooHigh && (
-          <p style={{ color: C.loss, fontSize: 13, margin: "6px 0 0" }}>
-            Allocation exceeds your available balance.
-          </p>
-        )}
+        {tooHigh && <p style={{ color: C.loss, fontSize: 13, margin: "6px 0 0" }}>Allocation exceeds your available balance.</p>}
       </div>
 
       <div style={{ display: "flex", gap: 10 }}>
-        <button type="button" style={btn("outline", { flex: 1 })} onClick={onCancel}>
-          Cancel
-        </button>
+        <button type="button" style={btn("outline", { flex: 1 })} onClick={onCancel}>Cancel</button>
         <button
           style={btn("primary", {
             flex: 1,
@@ -359,7 +419,7 @@ function CreateBotForm({ meta, balance, onCreate, onCancel }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Activity log (real trades + blue commentary)                       */
+/* Activity log                                                       */
 /* ------------------------------------------------------------------ */
 function ActivityLog({ trades, active, base }) {
   const [comments, setComments] = useState([]);
@@ -370,10 +430,7 @@ function ActivityLog({ trades, active, base }) {
     const iv = setInterval(() => {
       price = price * (1 + (Math.random() - 0.5) * 0.004);
       setComments((prev) =>
-        [{ id: `c-${Date.now()}`, ts: Date.now(), msg: randomComment(base, price) }, ...prev].slice(
-          0,
-          LOG_LINES_SHOWN
-        )
+        [{ id: `c-${Date.now()}`, ts: Date.now(), msg: randomComment(base, price) }, ...prev].slice(0, LOG_LINES_SHOWN)
       );
     }, COMMENT_INTERVAL_MS);
     return () => clearInterval(iv);
@@ -393,11 +450,11 @@ function ActivityLog({ trades, active, base }) {
   return (
     <div
       style={{
-        marginTop: 16,
-        background: "#080808",
+        gridColumn: "1 / -1",
         border: `1px solid ${C.line}`,
         borderRadius: 10,
         overflow: "hidden",
+        background: "#080808",
       }}
     >
       <div
@@ -408,7 +465,7 @@ function ActivityLog({ trades, active, base }) {
           fontWeight: 700,
           textTransform: "uppercase",
           letterSpacing: "0.06em",
-          color: C.textMuted,
+          color: C.dim,
         }}
       >
         Activity Log
@@ -416,33 +473,27 @@ function ActivityLog({ trades, active, base }) {
       <div
         style={{
           padding: "10px 14px",
-          maxHeight: 200,
+          maxHeight: 160,
           overflowY: "auto",
           fontFamily: MONO,
           fontSize: 12,
-          lineHeight: 1.6,
+          lineHeight: 1.55,
         }}
       >
         {lines.length === 0 ? (
-          <p style={{ color: C.textMuted, margin: 0, fontSize: 13 }}>
+          <div style={{ color: C.dim, margin: 0, fontSize: 13 }}>
             {active
               ? "Bot is running — activity will appear here."
               : "No trades yet — start the bot to see activity."}
-          </p>
+          </div>
         ) : (
           lines.map((line) =>
             line.kind === "comment" ? (
               <div
                 key={line.id}
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
+                style={{ display: "flex", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
               >
-                <span style={{ color: "#4a4a4a", minWidth: 74, display: "inline-block" }}>
+                <span style={{ color: "#4a4a4a", display: "inline-block", width: 74, marginRight: 8 }}>
                   {fmtTime(line.ts)}
                 </span>
                 <span style={{ color: COMMENT_COLOR }}>{line.msg}</span>
@@ -450,16 +501,9 @@ function ActivityLog({ trades, active, base }) {
             ) : (
               <div
                 key={line.id}
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  alignItems: "center",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
+                style={{ display: "flex", gap: 6, alignItems: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
               >
-                <span style={{ color: "#4a4a4a", minWidth: 74, display: "inline-block" }}>
+                <span style={{ color: "#4a4a4a", display: "inline-block", width: 74, marginRight: 8 }}>
                   {fmtTime(line.trade.when)}
                 </span>
                 <span style={{ color: line.trade.isWin ? C.gain : C.loss }}>
@@ -482,9 +526,9 @@ function ActivityLog({ trades, active, base }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Bot card                                                           */
+/* Bot row (`.bots__item` layout)                                     */
 /* ------------------------------------------------------------------ */
-function BotCard({
+function BotRow({
   botType,
   bot,
   balance,
@@ -498,7 +542,7 @@ function BotCard({
   onRemove,
 }) {
   const meta = BOT_META[botType];
-  const isNarrow = useIsNarrow();
+  const isNarrow = useIsNarrow(800);
 
   if (!bot && configuring) {
     return (
@@ -528,90 +572,68 @@ function BotCard({
   const allocation = getAllocation(bot);
 
   return (
-    <div style={cardStyle}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 8,
-          marginBottom: 6,
-        }}
-      >
+    <article style={itemStyle}>
+      <span style={icoStyle}>
+        <BotIcon />
+      </span>
+
+      <div style={{ minWidth: 0, alignSelf: "center" }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>
           {meta.icon} {meta.label}
         </h3>
+        <p style={{ margin: "4px 0 0", color: C.dim, fontSize: 14, lineHeight: 1.5 }}>
+          {meta.description}
+        </p>
+        <p style={{ margin: "4px 0 0", color: C.dim, fontSize: 12, fontFamily: MONO }}>
+          {meta.cadence}
+        </p>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <span style={badge(RISK_TONE[meta.risk] || "blue")}>{meta.risk} risk</span>
         <span style={badge(badgeTone)}>{badgeText}</span>
+        {isActive && (
+          <span style={badge(pnl >= 0 ? "green" : "red")}>
+            {pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}
+          </span>
+        )}
       </div>
-      <div style={{ color: C.textMuted, fontSize: 13, fontFamily: MONO, marginBottom: 8 }}>
-        {meta.cadence}
-      </div>
-      <p style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.5, margin: "0 0 18px" }}>
-        {meta.description}
-      </p>
 
-      {/* Stats row 1 */}
+      {bot && (
+        <div
+          style={{
+            gridColumn: "1 / -1",
+            display: "grid",
+            gridTemplateColumns: isNarrow ? "repeat(2, 1fr)" : "repeat(5, 1fr)",
+            gap: 14,
+            paddingTop: 14,
+            borderTop: `1px solid ${C.line}`,
+          }}
+        >
+          <Stat label="P&L" value={fmtUsd(pnl)} color={pnl >= 0 ? C.gain : C.loss} />
+          <Stat label="Wins" value={wins} color={C.gain} />
+          <Stat label="Losses" value={losses} color={C.loss} />
+          <Stat label="Win Rate" value={winRate !== null ? `${winRate}%` : "—"} />
+          <Stat label="Allocated" value={`$${allocation.toFixed(2)}`} />
+        </div>
+      )}
+
+      {error && (
+        <p style={{ gridColumn: "1 / -1", color: C.loss, fontSize: 13, margin: 0 }}>{error}</p>
+      )}
+
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: isNarrow ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+          gridColumn: "1 / -1",
+          display: "flex",
           gap: 10,
-          marginBottom: 18,
+          flexDirection: isNarrow ? "column" : "row",
         }}
       >
-        {[
-          { label: "Risk", value: meta.risk, color: RISK_COLOR[meta.risk], mono: false },
-          { label: "P&L", value: fmtUsd(pnl), color: pnl >= 0 ? C.gain : C.loss, mono: true },
-          { label: "Wins", value: wins, color: C.gain, mono: true },
-          { label: "Losses", value: losses, color: C.loss, mono: true },
-        ].map((s) => (
-          <div key={s.label}>
-            <div style={{ color: C.textMuted, fontSize: 11, marginBottom: 4 }}>{s.label}</div>
-            <div
-              style={{
-                fontFamily: s.mono ? MONO : "inherit",
-                fontSize: 15,
-                fontWeight: 700,
-                color: s.color,
-              }}
-            >
-              {s.value}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Stats row 2 */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 10,
-          marginBottom: 18,
-        }}
-      >
-        <div>
-          <div style={{ color: C.textMuted, fontSize: 11, marginBottom: 4 }}>Win Rate</div>
-          <div style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, color: C.text }}>
-            {winRate !== null ? `${winRate}%` : "—"}
-          </div>
-        </div>
-        <div>
-          <div style={{ color: C.textMuted, fontSize: 11, marginBottom: 4 }}>Allocated</div>
-          <div style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, color: C.text }}>
-            {bot ? `$${allocation.toFixed(2)}` : "—"}
-          </div>
-        </div>
-      </div>
-
-      {error && <p style={{ color: C.loss, fontSize: 13, margin: "0 0 12px" }}>{error}</p>}
-
-      {!bot ? (
-        <>
-          <div style={{ display: "flex", gap: 10, flexDirection: isNarrow ? "column" : "row" }}>
+        {!bot ? (
+          <>
             <button
               style={btn("primary", {
-                flex: 1,
                 opacity: canConfigure ? 1 : 0.5,
                 cursor: canConfigure ? "pointer" : "not-allowed",
               })}
@@ -622,46 +644,44 @@ function BotCard({
             >
               Configure
             </button>
-            <button
-              style={btn("outline", { flex: 1, opacity: 0.5, cursor: "not-allowed" })}
-              disabled
-            >
+            <button style={btn("outline", { opacity: 0.5, cursor: "not-allowed" })} disabled>
               Start Bot
             </button>
-          </div>
-          {!canConfigure && (
-            <p style={{ color: C.textMuted, fontSize: 12, margin: "8px 0 0", textAlign: "center" }}>
-              Requires a balance of at least ${MIN_CONFIGURE_BALANCE} to configure.
-            </p>
-          )}
-        </>
-      ) : !isActive ? (
-        <div style={{ display: "flex", gap: 10, flexDirection: isNarrow ? "column" : "row" }}>
-          <button
-            style={btn("primary", { flex: 1 })}
-            onClick={() => onStart(botType)}
-            onMouseEnter={hoverIn}
-            onMouseLeave={hoverOut}
-          >
-            Start Bot
-          </button>
-          <button style={btn("outline", { flex: 1 })} onClick={() => onRemove(botType)}>
-            Cancel
-          </button>
-        </div>
-      ) : (
-        <div style={{ display: "flex", gap: 10, flexDirection: isNarrow ? "column" : "row" }}>
-          <button style={btn("outline", { flex: 1 })} onClick={() => onStop(botType)}>
-            Stop
-          </button>
-          <button style={btn("danger")} onClick={() => onRemove(botType)}>
-            Delete
-          </button>
-        </div>
+          </>
+        ) : !isActive ? (
+          <>
+            <button style={btn("primary")} onClick={() => onStart(botType)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+              <PlayIcon /> Start Bot
+            </button>
+            <button style={btn("outline")} onClick={() => onRemove(botType)}>
+              Cancel
+            </button>
+          </>
+        ) : (
+          <>
+            <button style={btn("outline")} onClick={() => onStop(botType)}>
+              <SquareIcon /> Stop
+            </button>
+            <button
+              style={btn("danger")}
+              onClick={() => onRemove(botType)}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(244, 82, 95, 0.5)"; e.currentTarget.style.color = C.loss; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#262626"; e.currentTarget.style.color = "#d4d8d6"; }}
+            >
+              <TrashIcon /> Delete
+            </button>
+          </>
+        )}
+      </div>
+
+      {!canConfigure && !bot && (
+        <p style={{ gridColumn: "1 / -1", color: C.dim, fontSize: 12, margin: 0 }}>
+          Requires a balance of at least ${MIN_CONFIGURE_BALANCE} to configure.
+        </p>
       )}
 
       {bot && <ActivityLog trades={trades} active={isActive} base={meta.base} />}
-    </div>
+    </article>
   );
 }
 
@@ -683,7 +703,7 @@ export default function Bots() {
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [configuringType, setConfiguringType] = useState(null);
-  const isNarrow = useIsNarrow();
+  const isNarrow = useIsNarrow(800);
 
   const totalBots = Object.keys(BOT_META).length;
   const meetsMinBalance = Number(balance) >= MIN_CONFIGURE_BALANCE;
@@ -703,133 +723,142 @@ export default function Bots() {
     setPickerOpen(false);
   };
 
-  const heroStats = [
-    { value: totalBots, label: "Total Bots", color: "#fff" },
-    {
-      value: balanceLoading ? "…" : `$${Number(balance).toFixed(2)}`,
-      label: "Available Balance",
-      color: "#fff",
-    },
-    { value: fmtUsd(totals.pnl), label: "P&L", color: totals.pnl >= 0 ? C.gain : C.loss },
-    {
-      value: totals.winRate !== null ? `${totals.winRate}%` : "—",
-      label: "Win Rate",
-      color: "#fff",
-    },
-    { value: totals.trades, label: "Trades", color: "#fff" },
-    { value: `$${totals.allocated.toFixed(0)}`, label: "Allocated", color: "#fff" },
-    { value: statusLabel, label: "Bot Status", color: meetsMinBalance ? C.gain : C.loss },
-  ];
-
   return (
-    <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 0 32px", color: C.text }}>
-      {/* Hero banner */}
-      <div
-        style={{
-          background: `linear-gradient(135deg, ${C.accent}, #3a4bc4)`,
-          borderRadius: 20,
-          padding: isNarrow ? 20 : "32px 36px",
-          marginBottom: 28,
-        }}
-      >
-        <h2 style={{ fontSize: isNarrow ? 22 : 28, margin: "0 0 6px", color: "#fff" }}>
-          Automated Trading
-        </h2>
-        <p style={{ color: "rgba(255,255,255,0.85)", margin: "0 0 20px", fontSize: 14 }}>
-          Create and manage algorithmic trading strategies
-        </p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: isNarrow ? 16 : 36 }}>
-          {heroStats.map((s) => (
-            <div key={s.label}>
-              <div
-                style={{
-                  fontFamily: MONO,
-                  fontSize: isNarrow ? 18 : 22,
-                  fontWeight: 700,
-                  color: s.color,
-                }}
-              >
-                {s.value}
-              </div>
-              <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, marginTop: 4 }}>
-                {s.label}
-              </div>
+    <div
+      style={{
+        maxWidth: 1100,
+        margin: "0 auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: 20,
+        color: C.text,
+      }}
+    >
+      {/* Trading overview card */}
+      <div style={cardBase}>
+        <div style={cheadStyle}>
+          <span style={{ color: C.blue, display: "inline-flex" }}>
+            <ActivityIcon />
+          </span>
+          Trading Overview
+        </div>
+        <div style={{ padding: 24 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isNarrow ? "repeat(2, 1fr)" : "repeat(7, 1fr)",
+              gap: isNarrow ? 16 : 24,
+            }}
+          >
+            <Stat label="Total Bots" value={totalBots} />
+            <Stat
+              label="Available"
+              value={balanceLoading ? "…" : `$${Number(balance).toFixed(2)}`}
+            />
+            <Stat
+              label="P&L"
+              value={fmtUsd(totals.pnl)}
+              color={totals.pnl >= 0 ? C.gain : C.loss}
+            />
+            <Stat
+              label="Win Rate"
+              value={totals.winRate !== null ? `${totals.winRate}%` : "—"}
+            />
+            <Stat label="Trades" value={totals.trades} />
+            <Stat label="Allocated" value={`$${totals.allocated.toFixed(0)}`} />
+            <Stat
+              label="Status"
+              value={statusLabel}
+              color={meetsMinBalance ? C.gain : C.loss}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* DCA Bots card */}
+      <div style={cardBase}>
+        <div style={cheadStyle}>
+          <span style={{ color: C.blue, display: "inline-flex" }}>
+            <BotIcon />
+          </span>
+          DCA Bots ({totalBots})
+        </div>
+
+        <div style={{ padding: 24 }}>
+          {/* Section header */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: isNarrow ? "stretch" : "flex-start",
+              justifyContent: "space-between",
+              flexDirection: isNarrow ? "column" : "row",
+              gap: 12,
+              marginBottom: 20,
+            }}
+          >
+            <div>
+              <h3 style={{ margin: "0 0 4px", fontSize: 18, color: C.text }}>
+                Dollar-Cost Averaging Bots
+              </h3>
+              <p style={{ margin: 0, color: C.dim, fontSize: 14 }}>
+                Regular purchases of assets regardless of price
+              </p>
             </div>
-          ))}
+            <button
+              style={btn("primary", { width: isNarrow ? "100%" : undefined })}
+              onClick={() => setPickerOpen(true)}
+              onMouseEnter={hoverIn}
+              onMouseLeave={hoverOut}
+            >
+              Create New Bot
+            </button>
+          </div>
+
+          {balanceError && (
+            <p style={{ color: C.loss, fontSize: 13, margin: "0 0 12px" }}>{balanceError}</p>
+          )}
+
+          {pickerOpen && (
+            <BotPicker
+              bots={bots}
+              onSelect={handlePickBot}
+              onClose={() => setPickerOpen(false)}
+            />
+          )}
+
+          {/* Bot list */}
+          <div style={{ display: "grid", gap: 14 }}>
+            <BotRow
+              botType="btc_accumulation"
+              bot={bots.btc_accumulation}
+              balance={balance}
+              error={botErrors.btc_accumulation}
+              configuring={configuringType === "btc_accumulation"}
+              onConfigureStart={() => setConfiguringType("btc_accumulation")}
+              onConfigureCancel={() => setConfiguringType(null)}
+              onCreated={createBot}
+              onStart={startBot}
+              onStop={stopBot}
+              onRemove={removeBot}
+            />
+            <BotRow
+              botType="eth_dca_pro"
+              bot={bots.eth_dca_pro}
+              balance={balance}
+              error={botErrors.eth_dca_pro}
+              configuring={configuringType === "eth_dca_pro"}
+              onConfigureStart={() => setConfiguringType("eth_dca_pro")}
+              onConfigureCancel={() => setConfiguringType(null)}
+              onCreated={createBot}
+              onStart={startBot}
+              onStop={stopBot}
+              onRemove={removeBot}
+            />
+          </div>
         </div>
       </div>
 
-      {balanceError && <p style={{ color: C.loss, fontSize: 13, margin: "0 0 12px" }}>{balanceError}</p>}
-
-      {/* Section header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: isNarrow ? "stretch" : "flex-start",
-          justifyContent: "space-between",
-          flexDirection: isNarrow ? "column" : "row",
-          marginBottom: 16,
-          gap: 12,
-        }}
-      >
-        <div>
-          <h3 style={{ margin: "0 0 4px", fontSize: 20, color: C.text }}>
-            Dollar-Cost Averaging Bots
-          </h3>
-          <p style={{ margin: 0, color: C.textMuted, fontSize: 13 }}>
-            Regular purchases of assets regardless of price
-          </p>
-        </div>
-        <button
-          style={btn("primary", { width: isNarrow ? "100%" : undefined })}
-          onClick={() => setPickerOpen(true)}
-          onMouseEnter={hoverIn}
-          onMouseLeave={hoverOut}
-        >
-          Create New Bot
-        </button>
-      </div>
-
-      {pickerOpen && (
-        <BotPicker bots={bots} onSelect={handlePickBot} onClose={() => setPickerOpen(false)} />
-      )}
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr",
-          gap: 20,
-        }}
-      >
-        <BotCard
-          botType="btc_accumulation"
-          bot={bots.btc_accumulation}
-          balance={balance}
-          error={botErrors.btc_accumulation}
-          configuring={configuringType === "btc_accumulation"}
-          onConfigureStart={() => setConfiguringType("btc_accumulation")}
-          onConfigureCancel={() => setConfiguringType(null)}
-          onCreated={createBot}
-          onStart={startBot}
-          onStop={stopBot}
-          onRemove={removeBot}
-        />
-        <BotCard
-          botType="eth_dca_pro"
-          bot={bots.eth_dca_pro}
-          balance={balance}
-          error={botErrors.eth_dca_pro}
-          configuring={configuringType === "eth_dca_pro"}
-          onConfigureStart={() => setConfiguringType("eth_dca_pro")}
-          onConfigureCancel={() => setConfiguringType(null)}
-          onCreated={createBot}
-          onStart={startBot}
-          onStop={stopBot}
-          onRemove={removeBot}
-        />
-      </div>
-
-      <p style={{ color: C.textMuted, fontSize: 12, marginTop: 16, lineHeight: 1.5 }}>
+      <p style={{ color: C.dim, fontSize: 12, margin: 0, lineHeight: 1.5 }}>
         Automated bots trade based on your configuration and market conditions. Past performance
         does not guarantee future results. Only allocate funds you can afford to have at risk.
       </p>
