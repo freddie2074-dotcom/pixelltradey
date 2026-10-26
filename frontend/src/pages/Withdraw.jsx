@@ -44,7 +44,7 @@ const css = `
   --amber: #f5b13d;
   max-width: 1080px;
   margin: 0 auto;
-  padding: 88px 24px 48px;
+  padding: 31px 24px 48px;
   color: var(--strong);
   box-sizing: border-box;
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -204,7 +204,7 @@ const css = `
 
 /* ---------- responsive ---------- */
 @media (max-width: 860px) {
-  .wd { padding: 76px 14px 32px; }
+  .wd { padding: 19px 14px 32px; }
   .wd__grid { grid-template-columns: 1fr; gap: 20px; }
 }
 @media (max-width: 560px) {
