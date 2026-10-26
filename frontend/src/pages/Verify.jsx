@@ -358,8 +358,8 @@ export default function Verify() {
     },
     back: {
       title: "Back of Document",
-      sub: `Turn your ${docType.label} over and keep it on a flat surface`,
-      hint: "Ensure all four corners are visible and text is clear",
+      sub: `Flip your ${docType.label} over and take a photo of the back`,
+      hint: "Make sure the barcode or magnetic stripe is clearly visible",
       file: back,
       set: setBack,
     },
