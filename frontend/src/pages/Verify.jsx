@@ -161,10 +161,54 @@ const css = `
 .vf__msg { margin-top: 14px; padding: 10px 12px; font-size: 13px; border-radius: 8px; border: 1px solid; }
 .vf__msg--err { color: var(--red); border-color: color-mix(in srgb, var(--red) 35%, transparent); background: color-mix(in srgb, var(--red) 10%, transparent); }
 .vf__reason { margin-top: 10px; padding: 10px 12px; font-size: 13px; border-radius: 8px; color: var(--red); background: color-mix(in srgb, var(--red) 10%, transparent); }
+
+/* ---------- review step ---------- */
+.vr { max-width: 448px; margin: 0 auto; text-align: center; }
+.vr h1 { margin: 0 0 8px; font-size: 26px; line-height: 1.2; color: var(--strong); }
+.vr .vf__sub { margin: 0 0 18px; line-height: 1.8; }
+.vr__steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+.vr__step {
+  display: flex; align-items: center; gap: 8px; padding: 10px 12px; text-align: left;
+  font-size: 13px; font-weight: 600; color: var(--strong);
+  background: #0f0f0f; border: 1px solid var(--border); border-radius: 10px;
+}
+.vr__step.is-active { border-color: color-mix(in srgb, var(--green) 45%, transparent); }
+.vr__dot {
+  flex-shrink: 0; display: grid; place-items: center; width: 22px; height: 22px;
+  border-radius: 50%; background: var(--green); color: #04210f; font-size: 12px; font-weight: 700;
+}
+.vr__dot svg { width: 13px; height: 13px; stroke-width: 3; }
+.vr__card {
+  padding: 20px; text-align: left; background: #111; border: 1px solid var(--border); border-radius: 12px;
+}
+.vr__head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; font-size: 17px; font-weight: 700; color: var(--strong); }
+.vr__head svg { width: 18px; height: 18px; color: var(--green); }
+.vr__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+.vr__thumb { margin: 0; }
+.vr__thumb .vr__img {
+  display: grid; place-items: center; width: 100%; aspect-ratio: 3 / 2; overflow: hidden;
+  font-size: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+}
+.vr__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vr__thumb figcaption { margin-top: 8px; font-size: 13px; color: var(--text); }
+.vr__fields { display: grid; gap: 12px; margin-bottom: 18px; }
+.vr__note { margin: 0 0 18px; font-size: 13.5px; line-height: 1.6; color: var(--text); }
+.vr__actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.vr__back, .vr__submit {
+  display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 20px;
+  font-family: inherit; font-size: 14px; font-weight: 600; border-radius: 8px; cursor: pointer;
+}
+.vr__back { color: var(--strong); background: #0f0f0f; border: 1px solid var(--border); }
+.vr__back svg { width: 16px; height: 16px; }
+.vr__submit { color: #04210f; background: var(--green); border: 1px solid var(--green); transition: opacity .15s; }
+.vr__submit:hover:not(:disabled) { opacity: .9; }
+.vr__submit:disabled { opacity: .5; cursor: not-allowed; }
+
 @media (max-width: 600px) {
   .vf { padding: 76px 14px 32px; }
   .vf__row2 { grid-template-columns: 1fr; }
   .vf__row2 .vf__field + .vf__field { margin-top: 16px; }
+  .vr__steps { grid-template-columns: 1fr; }
 }
 `;
 
@@ -231,6 +275,27 @@ function CaptureBox({ id, file, hint, onPick, live }) {
         onChange={(e) => onPick(e.target.files?.[0] || null)}
       />
     </label>
+  );
+}
+
+function Thumb({ file, label }) {
+  const [url, setUrl] = useState(null);
+
+  useEffect(() => {
+    if (file && file.type.startsWith("image/")) {
+      const u = URL.createObjectURL(file);
+      setUrl(u);
+      return () => URL.revokeObjectURL(u);
+    }
+    setUrl(null);
+  }, [file]);
+
+  if (!file) return null;
+  return (
+    <figure className="vr__thumb">
+      <div className="vr__img">{url ? <img src={url} alt={label} /> : <span>{file.name}</span>}</div>
+      <figcaption>{label}</figcaption>
+    </figure>
   );
 }
 
@@ -524,29 +589,58 @@ export default function Verify() {
         )}
 
         {showForm && step === "details" && (
-          <div className="vf__choose">
-            <h1>Your Details</h1>
-            <p className="vf__sub">Enter them exactly as they appear on your {docType.label}</p>
-            <form className="vf__card" onSubmit={submit} style={{ textAlign: "left" }}>
-              <div className="vf__field">
-                <label className="vf__label" htmlFor="vf-name">Full name (as on your ID)</label>
-                <input id="vf-name" className="vf__input" value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
+          <form className="vr" onSubmit={submit}>
+            <h1>Verify your identity</h1>
+            <p className="vf__sub">
+              ID document and a live face photo. Required for withdrawals of $500 or more.
+            </p>
+
+            <div className="vr__steps">
+              <div className="vr__step">
+                <span className="vr__dot"><Icon>{ICON_OK}</Icon></span>ID document
               </div>
-              <div className="vf__field">
-                <label className="vf__label" htmlFor="vf-country">Country of issue</label>
-                <input id="vf-country" className="vf__input" value={country} onChange={(e) => setCountry(e.target.value)} autoComplete="country-name" />
+              <div className="vr__step">
+                <span className="vr__dot"><Icon>{ICON_OK}</Icon></span>Face check
               </div>
-              <div className="vf__field">
-                <label className="vf__label" htmlFor="vf-num">Document number</label>
-                <input id="vf-num" className="vf__input" value={docNumber} onChange={(e) => setDocNumber(e.target.value)} autoComplete="off" />
+              <div className="vr__step is-active">
+                <span className="vr__dot">3</span>Review
+              </div>
+            </div>
+
+            <div className="vr__card">
+              <div className="vr__head">
+                <Icon>{ICON_OK}</Icon>
+                Review and submit
               </div>
 
-              <button className="vf__btn" type="submit" disabled={busy}>
-                {busy ? "Uploading..." : "Submit for review"}
-              </button>
+              <div className="vr__grid">
+                <Thumb file={front} label={`${docType.label}${docType.back ? " (front)" : ""}`} />
+                {docType.back && <Thumb file={back} label={`${docType.label} (back)`} />}
+                <Thumb file={selfie} label="Face photo" />
+              </div>
+
+              {/* Needed by submit(); remove these and the check in submit() if your table doesn't require them */}
+              <div className="vr__fields">
+                <input className="vf__input" placeholder="Full name (as on your ID)" value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
+                <input className="vf__input" placeholder="Country of issue" value={country} onChange={(e) => setCountry(e.target.value)} autoComplete="country-name" />
+                <input className="vf__input" placeholder="Document number" value={docNumber} onChange={(e) => setDocNumber(e.target.value)} autoComplete="off" />
+              </div>
+
+              <p className="vr__note">Your photos are stored privately and only used to verify your identity.</p>
+
+              <div className="vr__actions">
+                <button type="button" className="vr__back" onClick={() => setStep("selfie")}>
+                  <Icon>{ICON_BACK}</Icon>
+                  Back
+                </button>
+                <button type="submit" className="vr__submit" disabled={busy}>
+                  {busy ? "Uploading..." : "Submit for review"}
+                </button>
+              </div>
+
               {msg && <div className="vf__msg vf__msg--err">{msg.text}</div>}
-            </form>
-          </div>
+            </div>
+          </form>
         )}
       </div>
     </>
