@@ -18,7 +18,7 @@ const css = `
   --red: #ff3b4e;
   max-width: 640px;
   margin: 0 auto;
-  padding: 88px 20px 56px;
+  padding: 31px 20px 56px;
   color: var(--muted);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   box-sizing: border-box;
@@ -92,7 +92,7 @@ const css = `
 
 
 @media (max-width: 480px) {
-  .pf { padding: 76px 14px 40px; }
+  .pf { padding: 19px 14px 40px; }
   .pf__card { padding: 18px; }
   .pf__input { max-width: 180px; }
 }
